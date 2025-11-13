@@ -2,6 +2,8 @@ import { rpc } from "@stellar/stellar-sdk";
 import { Network, StellarNetworkToPassphrase } from "../../types/shared";
 import { X402Config } from "../../types/config";
 
+export type StellarConnectedClient = rpc.Server;
+
 /**
  * Default Soroban RPC endpoint for Stellar testnet
  */
