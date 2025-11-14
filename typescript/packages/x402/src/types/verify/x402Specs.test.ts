@@ -217,16 +217,18 @@ describe("x402Specs Regex Patterns", () => {
         "C", // Just prefix (too short)
         "M", // Just prefix (too short)
         "G" + "A".repeat(56), // G-account too long (57 chars)
-        "G" + "2".repeat(54), // G-account too short (55 chars)
+        "GA" + "2".repeat(53), // G-account too short (55 chars)
         "C" + "B".repeat(56), // C-account too long (57 chars)
-        "C" + "2".repeat(54), // C-account too short (55 chars)
+        "CA" + "2".repeat(53), // C-account too short (55 chars)
         "M" + "C".repeat(69), // M-account too long (70 chars)
-        "M" + "3".repeat(67), // M-account too short (68 chars)
+        "MA" + "3".repeat(66), // M-account too short (68 chars)
         "XA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Invalid prefix 'X'
+        "GE5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Invalid second character
         "gA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Lowercase prefix
         "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN ", // Space character
         "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN-", // Hyphen character
         "0xGA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // EVM-style prefix
+        "ME5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KAAAAAAAAAAAAFKBA", // invalid second character in M-account
       ];
 
       invalidAddresses.forEach(address => {
@@ -254,8 +256,9 @@ describe("x402Specs Regex Patterns", () => {
         "", // Empty string
         "C", // Just prefix (too short)
         "C" + "B".repeat(56), // C-account too long (57 chars)
-        "C" + "2".repeat(54), // C-account too short (55 chars)
+        "CA" + "2".repeat(53), // C-account too short (55 chars)
         "XA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Invalid prefix 'X'
+        "CE5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Invalid second character
         "cA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Lowercase prefix
         "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // G-account
         "MA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KAAAAAAAAAAAAFKBA", // M-account
