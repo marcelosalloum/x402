@@ -58,7 +58,7 @@ export function createSigner(network: string, privateKey: Hex | string): Promise
 
   // stellar
   if (SupportedStellarNetworks.find(n => n === network)) {
-    return Promise.resolve(stellar.createStellarSigner(privateKey as string));
+    return Promise.resolve(stellar.createStellarSigner(privateKey as string, network as Network));
   }
 
   throw new Error(`Unsupported network: ${network}`);
@@ -91,7 +91,7 @@ export function isSvmSignerWallet(wallet: Signer): wallet is svm.SvmSigner {
  * @returns True if the wallet is a Stellar signer wallet, false otherwise.
  */
 export function isStellarSignerWallet(wallet: Signer): wallet is stellar.Ed25519Signer {
-  return stellar.isEd25519Signer(wallet);
+  return stellar.isStellarSigner(wallet);
 }
 
 /**
