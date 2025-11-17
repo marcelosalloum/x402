@@ -49,13 +49,24 @@ export const ErrorReasons = [
   "unsupported_scheme",
   "invalid_x402_version",
   "invalid_transaction_state",
-  "invalid_x402_version",
   "settle_exact_svm_block_height_exceeded",
   "settle_exact_svm_transaction_confirmation_timed_out",
-  "unsupported_scheme",
+  "invalid_exact_stellar_payload_malformed",
+  "invalid_exact_stellar_payload_wrong_operation",
+  "invalid_exact_stellar_payload_wrong_asset",
+  "invalid_exact_stellar_payload_wrong_function_name",
+  "invalid_exact_stellar_payload_wrong_function_args",
+  "invalid_exact_stellar_payload_wrong_recipient",
+  "invalid_exact_stellar_payload_wrong_amount",
+  "invalid_exact_stellar_payload_simulation_failed",
+  "invalid_exact_stellar_payload_missing_payer_signature",
+  "invalid_exact_stellar_payload_unexpected_pending_signatures",
+  "settle_exact_stellar_transaction_submission_failed",
+  "settle_exact_stellar_transaction_failed",
   "unexpected_settle_error",
   "unexpected_verify_error",
 ] as const;
+export type ErrorReason = (typeof ErrorReasons)[number];
 
 // Refiners
 const isInteger: (value: string) => boolean = value =>

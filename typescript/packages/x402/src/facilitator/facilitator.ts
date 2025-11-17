@@ -1,7 +1,13 @@
 import { verify as verifyExactEvm, settle as settleExactEvm } from "../schemes/exact/evm";
 import { verify as verifyExactSvm, settle as settleExactSvm } from "../schemes/exact/svm";
-import { SupportedEVMNetworks, SupportedSVMNetworks } from "../types/shared";
+import { verify as verifyExactStellar } from "../schemes/exact/stellar";
+import {
+  SupportedEVMNetworks,
+  SupportedSVMNetworks,
+  SupportedStellarNetworks,
+} from "../types/shared";
 import { X402Config } from "../types/config";
+import { getRpcClient as getStellarRpcClient } from "../shared/stellar/rpc";
 import {
   ConnectedClient as EvmConnectedClient,
   SignerWallet as EvmSignerWallet,
@@ -56,6 +62,12 @@ export async function verify<
         paymentRequirements,
         config,
       );
+    }
+
+    // stellar
+    if (SupportedStellarNetworks.includes(paymentRequirements.network)) {
+      const stellarRpcClient = getStellarRpcClient(paymentRequirements.network, config);
+      return await verifyExactStellar(stellarRpcClient, payload, paymentRequirements);
     }
   }
 
