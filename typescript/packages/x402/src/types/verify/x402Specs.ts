@@ -61,6 +61,7 @@ export const ErrorReasons = [
   "invalid_exact_stellar_payload_simulation_failed",
   "invalid_exact_stellar_payload_missing_payer_signature",
   "invalid_exact_stellar_payload_unexpected_pending_signatures",
+  "settle_exact_stellar_transaction_signing_failed",
   "settle_exact_stellar_transaction_submission_failed",
   "settle_exact_stellar_transaction_failed",
   "unexpected_settle_error",

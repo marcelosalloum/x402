@@ -1,6 +1,9 @@
 import { verify as verifyExactEvm, settle as settleExactEvm } from "../schemes/exact/evm";
 import { verify as verifyExactSvm, settle as settleExactSvm } from "../schemes/exact/svm";
-import { verify as verifyExactStellar } from "../schemes/exact/stellar";
+import {
+  verify as verifyExactStellar,
+  settle as settleExactStellar,
+} from "../schemes/exact/stellar";
 import {
   SupportedEVMNetworks,
   SupportedSVMNetworks,
@@ -8,6 +11,7 @@ import {
 } from "../types/shared";
 import { X402Config } from "../types/config";
 import { getRpcClient as getStellarRpcClient } from "../shared/stellar/rpc";
+import { Ed25519Signer } from "../shared/stellar";
 import {
   ConnectedClient as EvmConnectedClient,
   SignerWallet as EvmSignerWallet,
@@ -112,6 +116,16 @@ export async function settle<transport extends Transport, chain extends Chain>(
     if (SupportedSVMNetworks.includes(paymentRequirements.network)) {
       return await settleExactSvm(
         client as TransactionSigner,
+        payload,
+        paymentRequirements,
+        config,
+      );
+    }
+
+    // stellar
+    if (SupportedStellarNetworks.includes(paymentRequirements.network)) {
+      return await settleExactStellar(
+        client as Ed25519Signer,
         payload,
         paymentRequirements,
         config,
