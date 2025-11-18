@@ -22,9 +22,11 @@ import {
   settleResponseHeader,
   SupportedEVMNetworks,
   SupportedSVMNetworks,
+  SupportedStellarNetworks,
 } from "x402/types";
 import { useFacilitator } from "x402/verify";
 
+const DefaultMaxTimeoutSeconds = 60;
 /**
  * Creates a payment middleware factory for Express
  *
@@ -129,7 +131,7 @@ export function paymentMiddleware(
         description: description ?? "",
         mimeType: mimeType ?? "",
         payTo: getAddress(payTo),
-        maxTimeoutSeconds: maxTimeoutSeconds ?? 60,
+        maxTimeoutSeconds: maxTimeoutSeconds ?? DefaultMaxTimeoutSeconds,
         asset: getAddress(asset.address),
         // TODO: Rename outputSchema to requestStructure
         outputSchema: {
@@ -172,7 +174,7 @@ export function paymentMiddleware(
         description: description ?? "",
         mimeType: mimeType ?? "",
         payTo: payTo,
-        maxTimeoutSeconds: maxTimeoutSeconds ?? 60,
+        maxTimeoutSeconds: maxTimeoutSeconds ?? DefaultMaxTimeoutSeconds,
         asset: asset.address,
         // TODO: Rename outputSchema to requestStructure
         outputSchema: {
@@ -186,6 +188,47 @@ export function paymentMiddleware(
         },
         extra: {
           feePayer,
+        },
+      });
+    } else if (SupportedStellarNetworks.includes(network)) {
+      // get the supported payments from the facilitator
+      const paymentKinds = await supported();
+
+      // find the payment kind that matches the network and scheme
+      let maxLedger: string | undefined;
+      for (const kind of paymentKinds.kinds) {
+        if (kind.network === network && kind.scheme === "exact") {
+          maxLedger = kind?.extra?.maxLedger;
+          break;
+        }
+      }
+
+      // if no fee payer is found, throw an error
+      if (!maxLedger) {
+        throw new Error(`The facilitator did not provide a fee payer for network: ${network}.`);
+      }
+
+      paymentRequirements.push({
+        scheme: "exact",
+        network,
+        maxAmountRequired, // TODO: consult with community if we should standardize the digits. Stellar has 7 digits while EVM and SVM have 6.
+        resource: resourceUrl,
+        description: description ?? "",
+        mimeType: mimeType ?? "",
+        payTo: payTo,
+        maxTimeoutSeconds: maxTimeoutSeconds ?? DefaultMaxTimeoutSeconds,
+        asset: asset.address, // TODO: this asset is in the wrong type. Should be Stellr asset but it thinks its EIP712.
+        outputSchema: {
+          input: {
+            type: "http",
+            method: req.method.toUpperCase(),
+            discoverable: discoverable ?? true,
+            ...inputSchema,
+          },
+          output: outputSchema,
+        },
+        extra: {
+          maxLedger,
         },
       });
     } else {
