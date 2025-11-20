@@ -27,6 +27,7 @@ import {
 import { useFacilitator } from "x402/verify";
 
 const DefaultMaxTimeoutSeconds = 60;
+
 /**
  * Creates a payment middleware factory for Express
  *
@@ -211,7 +212,7 @@ export function paymentMiddleware(
       paymentRequirements.push({
         scheme: "exact",
         network,
-        maxAmountRequired, // TODO: consult with community if we should standardize the digits. Stellar has 7 digits while EVM and SVM have 6.
+        maxAmountRequired,
         resource: resourceUrl,
         description: description ?? "",
         mimeType: mimeType ?? "",
