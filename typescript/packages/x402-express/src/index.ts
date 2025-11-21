@@ -218,7 +218,7 @@ export function paymentMiddleware(
         mimeType: mimeType ?? "",
         payTo: payTo,
         maxTimeoutSeconds: maxTimeoutSeconds ?? DefaultMaxTimeoutSeconds,
-        asset: asset.address, // TODO: this asset is in the wrong type. Should be Stellr asset but it thinks its EIP712.
+        asset: asset.address,
         outputSchema: {
           input: {
             type: "http",
