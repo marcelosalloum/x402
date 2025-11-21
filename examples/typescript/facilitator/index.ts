@@ -82,7 +82,7 @@ app.post("/verify", async (req: Request, res: Response) => {
     } else if (SupportedSVMNetworks.includes(paymentRequirements.network)) {
       client = await createSigner(paymentRequirements.network, SVM_PRIVATE_KEY);
     } else if (SupportedStellarNetworks.includes(paymentRequirements.network)) {
-      client = createConnectedClient(paymentRequirements.network, x402Config);
+      client = await createSigner(paymentRequirements.network, STELLAR_PRIVATE_KEY);
     } else {
       throw new Error("Invalid network");
     }

@@ -228,7 +228,12 @@ describe("Stellar Facilitator Settle", () => {
         network: "stellar-testnet",
       });
 
-      expect(verifyModule.verify).toHaveBeenCalledWith(mockServer, validPayload, validRequirements);
+      expect(verifyModule.verify).toHaveBeenCalledWith(
+        facilitatorSigner,
+        validPayload,
+        validRequirements,
+        undefined,
+      );
       expect(mockServer.getAccount).toHaveBeenCalledWith(FACILITATOR_PUBLIC);
       expect(mockServer.sendTransaction).toHaveBeenCalled();
       expect(mockServer.getTransaction).toHaveBeenCalledWith("test-tx-hash-123");

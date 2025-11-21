@@ -10,7 +10,6 @@ import {
   SupportedStellarNetworks,
 } from "../types/shared";
 import { X402Config } from "../types/config";
-import { getRpcClient as getStellarRpcClient } from "../shared/stellar/rpc";
 import { Ed25519Signer } from "../shared/stellar";
 import {
   ConnectedClient as EvmConnectedClient,
@@ -70,8 +69,12 @@ export async function verify<
 
     // stellar
     if (SupportedStellarNetworks.includes(paymentRequirements.network)) {
-      const stellarRpcClient = getStellarRpcClient(paymentRequirements.network, config);
-      return await verifyExactStellar(stellarRpcClient, payload, paymentRequirements);
+      return await verifyExactStellar(
+        client as Ed25519Signer,
+        payload,
+        paymentRequirements,
+        config,
+      );
     }
   }
 

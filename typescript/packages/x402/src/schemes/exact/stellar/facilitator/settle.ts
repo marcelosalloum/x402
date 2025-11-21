@@ -86,7 +86,7 @@ export async function settle(
 
   try {
     // 1. Verify payment before settlement
-    const verifyResult = await verify(server, payload, paymentRequirements);
+    const verifyResult = await verify(signer, payload, paymentRequirements, config);
 
     if (!verifyResult.isValid) {
       return errorResponse(verifyResult.invalidReason!, network, verifyResult.payer);

@@ -1,4 +1,4 @@
-import { rpc, scValToNative, Transaction, Address, Operation } from "@stellar/stellar-sdk";
+import { scValToNative, Transaction, Address, Operation } from "@stellar/stellar-sdk";
 import { Api } from "@stellar/stellar-sdk/rpc";
 
 import {
@@ -9,7 +9,9 @@ import {
   ErrorReason,
 } from "../../../../types/verify";
 import { SupportedStellarNetworks } from "../../../../types";
-import { getNetworkPassphrase } from "../../../../shared/stellar/rpc";
+import { X402Config } from "../../../../types/config";
+import { getNetworkPassphrase, getRpcClient } from "../../../../shared/stellar/rpc";
+import { Ed25519Signer } from "../../../../shared/stellar";
 import { gatherAuthEntrySignatureStatus } from "../shared";
 
 /**
@@ -43,15 +45,17 @@ export function validResponse(payer: string): VerifyResponse {
  * 4. Validate contract address, recipient, and amount
  * 5. Re-simulate transaction to ensure it will succeed
  *
- * @param server - Soroban RPC server instance
+ * @param signer - Stellar signer (currently unused but kept for consistency with other networks)
  * @param payload - Payment payload from X-PAYMENT header
  * @param paymentRequirements - Original payment requirements
+ * @param config - Optional configuration for X402 operations (e.g., custom RPC URLs)
  * @returns VerifyResponse with validation result
  */
 export async function verify(
-  server: rpc.Server,
+  signer: Ed25519Signer,
   payload: PaymentPayload,
   paymentRequirements: PaymentRequirements,
+  config?: X402Config,
 ): Promise<VerifyResponse> {
   try {
     // 1. Validate protocol version, scheme, and network
@@ -62,6 +66,7 @@ export async function verify(
       !SupportedStellarNetworks.includes(paymentRequirements.network)
     )
       return invalidResponse("invalid_network");
+    const rpcServer = getRpcClient(paymentRequirements.network, config);
 
     // 2. Parse and decode transaction
     const stellarPayload = ExactStellarPayloadSchema.parse(payload.payload);
@@ -127,7 +132,7 @@ export async function verify(
     }
 
     // 7. Re-simulate to ensure transaction will succeed
-    const simulateResponse = await server.simulateTransaction(transaction);
+    const simulateResponse = await rpcServer.simulateTransaction(transaction);
     if (Api.isSimulationError(simulateResponse)) {
       console.error("Simulation error:", simulateResponse.error);
       return invalidResponse("invalid_exact_stellar_payload_simulation_failed", fromAddress);
@@ -139,6 +144,10 @@ export async function verify(
       simulationResponse: simulateResponse,
     });
 
+    // Ensure the operation is not trying anything funny with the facilitator account
+    if (operation.source === signer.address || transaction.source === signer.address) {
+      return invalidResponse("invalid_exact_stellar_payload_unsafe_tx_or_op_source", fromAddress);
+    }
     // Ensure the payer has already signed
     if (!authStatus.alreadySigned.includes(fromAddress)) {
       return invalidResponse("invalid_exact_stellar_payload_missing_payer_signature", fromAddress);

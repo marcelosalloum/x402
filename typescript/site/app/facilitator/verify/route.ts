@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     : SupportedSVMNetworks.includes(network)
       ? await createSigner(network, process.env.SOLANA_PRIVATE_KEY)
       : SupportedStellarNetworks.includes(network)
-        ? createConnectedClient(network)
+        ? await createSigner(network, process.env.STELLAR_PRIVATE_KEY!)
         : undefined;
 
   if (!client) {
