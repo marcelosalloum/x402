@@ -11,6 +11,7 @@ import {
 import { EvmPaywall } from "./EvmPaywall";
 import { SolanaPaywall } from "./SolanaPaywall";
 import { StellarFreighterPaywall } from "./stellar/StellarFreighterPaywall";
+import { StellarWKPaywall } from "./stellar/StellarWKPaywall";
 
 /**
  * Main Paywall App Component
@@ -65,9 +66,20 @@ export function PaywallApp() {
     );
   }
 
-  // For Stellar networks, use Freighter paywall by default
-  // Can be switched to StellarWKPaywall if needed
+  // For Stellar networks, use wallet provider flag to switch between Freighter and SWK
+  // Defaults to "freighter" if not specified
   if (isStellarNetwork(paymentRequirement.network)) {
+    const walletProvider = "swk";
+
+    if (walletProvider === "swk") {
+      return (
+        <StellarWKPaywall
+          paymentRequirement={paymentRequirement}
+          onSuccessfulResponse={handleSuccessfulResponse}
+        />
+      );
+    }
+
     return (
       <StellarFreighterPaywall
         paymentRequirement={paymentRequirement}
