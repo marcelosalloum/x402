@@ -13,6 +13,8 @@ type UseFreighterSignerReturn = Ed25519Signer | null;
 
 /**
  * Creates a Stellar signer that uses Freighter wallet for signing.
+ * Note: This signer implementation currently only supports `signAuthEntry`.
+ * `signTransaction` will throw an error if called.
  *
  * @param params - Hook parameters.
  * @param params.address - Wallet address to sign with.

@@ -22,6 +22,13 @@ type UseFreighterConnectionReturn = {
   disconnect: () => void;
 };
 
+const NETWORK_NAME_MAP = new Map<string, string>([
+  ["PUBLIC", "Mainnet"],
+  ["TESTNET", "Testnet"],
+  ["stellar", "Mainnet"],
+  ["stellar-testnet", "Testnet"],
+]);
+
 /**
  * Manages Freighter wallet connection state.
  *
@@ -35,6 +42,7 @@ export function useFreighterConnection({
   onStatus,
 }: UseFreighterConnectionParams): UseFreighterConnectionReturn {
   const [isInstalled, setIsInstalled] = useState<boolean | null>(null);
+
   const [address, setAddress] = useState<string | null>(null);
 
   /**
@@ -108,15 +116,11 @@ export function useFreighterConnection({
           cause: networkResult.error,
         });
       }
+
       // Standardize the network name from either x402 (stellar, stellar-testnet) or Freighter (PUBLIC, TESTNET) to a human-readable network name (Mainnet, Testnet)
-      const NetworkNameStandardizationMap = new Map<string, string>([
-        ["PUBLIC", "Mainnet"],
-        ["TESTNET", "Testnet"],
-        ["stellar", "Mainnet"],
-        ["stellar-testnet", "Testnet"],
-      ]);
-      let currentNetwork = NetworkNameStandardizationMap.get(networkResult.network);
-      const requiredNetwork = NetworkNameStandardizationMap.get(paymentRequirement.network);
+      const currentNetwork = NETWORK_NAME_MAP.get(networkResult.network);
+      const requiredNetwork = NETWORK_NAME_MAP.get(paymentRequirement.network);
+
       if (currentNetwork !== requiredNetwork) {
         throw new Error(
           `Please switch Freighter to ${requiredNetwork} network (currently on ${currentNetwork}), then try again.`,
@@ -135,8 +139,8 @@ export function useFreighterConnection({
         throw new Error("Failed to verify network information.");
       }
 
-      currentNetwork = NetworkNameStandardizationMap.get(finalNetworkResult.network);
-      if (currentNetwork !== requiredNetwork) {
+      const finalNetwork = NETWORK_NAME_MAP.get(finalNetworkResult.network);
+      if (finalNetwork !== requiredNetwork) {
         throw new Error(
           `Network mismatch: Please switch Freighter to ${requiredNetwork} network to continue.`,
         );

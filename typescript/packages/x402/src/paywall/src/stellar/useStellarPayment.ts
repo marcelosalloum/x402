@@ -19,10 +19,13 @@ type UseStellarPaymentResult = {
 
 type X402Window = typeof window.x402;
 
+const INITIAL_X402_VERSION = 1;
+
 /**
- * Handles Stellar payment submission, including balance validation and retry logic.
+ * Handles Stellar payment submission.
  *
  * @param params - Hook parameters.
+ * @param params.x402 - Bootstrapped x402 object containing `currentUrl`.
  * @param params.walletSigner - The signer responsible for Stellar signatures.
  * @param params.paymentRequirement - Active payment requirement in effect.
  * @param params.onSuccessfulResponse - Callback invoked once paywall returns success.
@@ -35,15 +38,16 @@ export function useStellarPayment(params: UseStellarPaymentParams): UseStellarPa
 
   const submitPayment = useCallback(async () => {
     if (!x402 || !walletSigner || !paymentRequirement) {
-      throw new Error("Missing required parameters");
+      setStatus(statusError("Unable to submit Stellar payment; wallet or config missing."));
+      return;
     }
 
+    setIsPaying(true);
     try {
       setStatus(statusInfo("Waiting for user signature..."));
-      const x402Version = 1;
       const paymentHeader = await createStellarPaymentHeader(
         walletSigner,
-        x402Version,
+        INITIAL_X402_VERSION,
         paymentRequirement,
       );
 

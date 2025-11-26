@@ -8,6 +8,8 @@ import { useFreighterSigner } from "./freighter/useFreighterSigner";
 import { useStellarBalance } from "./useStellarBalance";
 import { useStellarPayment } from "./useStellarPayment";
 
+const STELLAR_PAYMENT_SCALE = 10_000_000;
+
 type StellarFreighterPaywallProps = {
   paymentRequirement: PaymentRequirements;
   onSuccessfulResponse: (response: Response) => Promise<void>;
@@ -57,7 +59,7 @@ export function StellarFreighterPaywall({
   const amount =
     typeof x402.amount === "number"
       ? x402.amount
-      : Number(paymentRequirement.maxAmountRequired ?? 0) / 10_000_000;
+      : Number(paymentRequirement.maxAmountRequired ?? 0) / STELLAR_PAYMENT_SCALE;
 
   const networkName = paymentRequirement.network;
   const chainName = getNetworkDisplayName(networkName);

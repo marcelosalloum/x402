@@ -56,37 +56,38 @@ export function useStellarBalance({
       const rpcUrl = getRpcUrl(paymentRequirement.network);
       const contractId = paymentRequirement.asset;
 
-      // 1. Simulate to fetch the balance:
-      const balanceTx = await AssembledTransaction.build({
-        contractId,
-        method: "balance",
-        args: [nativeToScVal(address, { type: "address" })],
-        networkPassphrase,
-        rpcUrl,
-        parseResultXdr: result => result,
-      });
-      await balanceTx.simulate();
+      // Simulate to fetch the balance and decimals in parallel
+      const [balanceTx, decimalsTx] = await Promise.all([
+        AssembledTransaction.build({
+          contractId,
+          method: "balance",
+          args: [nativeToScVal(address, { type: "address" })],
+          networkPassphrase,
+          rpcUrl,
+          parseResultXdr: result => result,
+        }),
+        AssembledTransaction.build({
+          contractId,
+          method: "decimals",
+          networkPassphrase,
+          rpcUrl,
+          parseResultXdr: result => result,
+        }),
+      ]);
+
+      await Promise.all([balanceTx.simulate(), decimalsTx.simulate()]);
+
       if (!balanceTx.result) {
         throw new Error("Balance simulation failed");
       }
-
-      const balanceRaw = scValToNative(balanceTx.result) as bigint;
-
-      // 2. Simulate to get the decimals:
-      const decimalsTx = await AssembledTransaction.build({
-        contractId,
-        method: "decimals",
-        networkPassphrase,
-        rpcUrl,
-        parseResultXdr: result => result,
-      });
-      await decimalsTx.simulate();
       if (!decimalsTx.result) {
         throw new Error("Decimals simulation failed");
       }
+
+      const balanceRaw = scValToNative(balanceTx.result) as bigint;
       const decimals = scValToNative(decimalsTx.result) as number;
 
-      // 3. Format the balance:
+      // Format the balance
       const balanceFormatted = formatUnits(balanceRaw, decimals);
 
       setTokenBalanceRaw(balanceRaw);

@@ -3,6 +3,8 @@ import {
   StellarWalletsKit,
   WalletNetwork,
   FreighterModule,
+  HotWalletModule,
+  HanaModule,
   KleverModule,
 } from "@creit.tech/stellar-wallets-kit";
 import type { ISupportedWallet } from "@creit.tech/stellar-wallets-kit";
@@ -46,7 +48,13 @@ export function useSWKConnection({
         const networkPassphrase = getNetworkPassphrase(paymentRequirement.network);
         const newKit = new StellarWalletsKit({
           network: networkPassphrase as WalletNetwork,
-          modules: [new KleverModule(), new FreighterModule()], // NOTE: these are the only ones who implement signAuthEntries on SWK v1.9.5
+          // These are the only modules that implement signAuthEntries on SWK 2 (beta)
+          modules: [
+            new FreighterModule(),
+            new HotWalletModule(),
+            new HanaModule(),
+            new KleverModule(),
+          ],
         });
 
         setKit(newKit);
