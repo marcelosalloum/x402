@@ -69,9 +69,9 @@ export function PaywallApp() {
   // For Stellar networks, use wallet provider flag to switch between Freighter and SWK
   // Defaults to "freighter" if not specified
   if (isStellarNetwork(paymentRequirement.network)) {
-    const walletProvider = "swk";
+    const walletProvider = "freighter";
 
-    if (walletProvider === "swk") {
+    if (walletProvider !== "freighter") {
       return (
         <StellarWKPaywall
           paymentRequirement={paymentRequirement}

@@ -17,8 +17,6 @@ type UseFreighterConnectionParams = {
 
 type UseFreighterConnectionReturn = {
   isInstalled: boolean | null;
-  isConnected: boolean;
-  network: string | null;
   address: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -37,21 +35,7 @@ export function useFreighterConnection({
   onStatus,
 }: UseFreighterConnectionParams): UseFreighterConnectionReturn {
   const [isInstalled, setIsInstalled] = useState<boolean | null>(null);
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [network, setNetwork] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
-
-  /**
-   * Resets the wallet status.
-   *
-   * @param resetIsInstalled - Whether to reset the installed status.
-   */
-  const resetWalletStatus = (resetIsInstalled: boolean = false) => {
-    if (resetIsInstalled) setIsInstalled(false);
-    setIsWalletConnected(false);
-    setAddress(null);
-    setNetwork(null);
-  };
 
   /**
    * Handles errors if needed.
@@ -70,7 +54,8 @@ export function useFreighterConnection({
   const checkConnection = useCallback(async () => {
     const isAppConnected = await isConnected();
     if (!isAppConnected.isConnected) {
-      resetWalletStatus(true);
+      setIsInstalled(false);
+      setAddress(null);
       handleErrorIfNeeded(isAppConnected.error);
       return;
     }
@@ -78,27 +63,25 @@ export function useFreighterConnection({
     setIsInstalled(true);
     const isAppAllowed = await isAllowed();
     if (!isAppAllowed.isAllowed) {
-      resetWalletStatus();
+      setAddress(null);
       handleErrorIfNeeded(isAppAllowed.error);
       return;
     }
 
     const appNetwork = await getNetwork();
     if (!appNetwork.network) {
-      resetWalletStatus();
+      setAddress(null);
       handleErrorIfNeeded(appNetwork.error);
       return;
     }
 
     const appAddress = await getAddress();
     if (!appAddress.address) {
-      resetWalletStatus();
+      setAddress(null);
       handleErrorIfNeeded(appAddress.error);
       return;
     }
 
-    setIsWalletConnected(true);
-    setNetwork(appNetwork.network);
     setAddress(appAddress.address);
   }, []);
 
@@ -159,27 +142,23 @@ export function useFreighterConnection({
         );
       }
 
-      setIsWalletConnected(true);
       setAddress(accessResult.address);
-      setNetwork(finalNetworkResult.network);
       onStatus(statusClear());
     } catch (error) {
       console.error("Failed to connect Freighter", error);
       onStatus(
         statusError(error instanceof Error ? error.message : "Failed to connect to Freighter."),
       );
-      resetWalletStatus();
+      setAddress(null);
     }
   }, [paymentRequirement, onStatus]);
 
   const disconnect = useCallback(() => {
-    resetWalletStatus();
+    setAddress(null);
   }, []);
 
   return {
     isInstalled,
-    isConnected: isWalletConnected,
-    network,
     address,
     connect,
     disconnect,

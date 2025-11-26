@@ -1,13 +1,12 @@
 import { useCallback, useState } from "react";
 import type { PaymentRequirements } from "../../../types/verify";
-import { exact } from "../../../schemes";
-import { Spinner } from "../Spinner";
 import { getNetworkDisplayName } from "../paywallUtils";
-import type { Status } from "../status";
-import { statusError, statusInfo, statusSuccess } from "../status";
+import { Spinner } from "../Spinner";
+import { statusError, statusInfo, type Status } from "../status";
 import { useFreighterConnection } from "./freighter/useFreighterConnection";
-import { useFreighterBalance } from "./freighter/useFreighterBalance";
 import { useFreighterSigner } from "./freighter/useFreighterSigner";
+import { useStellarBalance } from "./useStellarBalance";
+import { useStellarPayment } from "./useStellarPayment";
 
 type StellarFreighterPaywallProps = {
   paymentRequirement: PaymentRequirements;
@@ -27,17 +26,15 @@ export function StellarFreighterPaywall({
   onSuccessfulResponse,
 }: StellarFreighterPaywallProps) {
   const [status, setStatus] = useState<Status | null>(null);
-  const [isPaying, setIsPaying] = useState(false);
   const [hideBalance, setHideBalance] = useState(true);
 
-  const { isInstalled, isConnected, network, address, connect, disconnect } =
-    useFreighterConnection({
-      paymentRequirement,
-      onStatus: setStatus,
-    });
+  const { isInstalled, address, connect, disconnect } = useFreighterConnection({
+    paymentRequirement,
+    onStatus: setStatus,
+  });
 
-  const { usdcBalance, formattedBalance, isFetchingBalance, refreshBalance, resetBalance } =
-    useFreighterBalance({
+  const { tokenBalanceFormatted, isFetchingBalance, refreshBalance, resetBalance } =
+    useStellarBalance({
       address,
       paymentRequirement,
       onStatus: setStatus,
@@ -45,8 +42,15 @@ export function StellarFreighterPaywall({
 
   const walletSigner = useFreighterSigner({
     address,
-    network,
     paymentRequirement,
+  });
+
+  const { isPaying, submitPayment } = useStellarPayment({
+    x402: window.x402,
+    paymentRequirement,
+    walletSigner,
+    onSuccessfulResponse,
+    setStatus,
   });
 
   const x402 = window.x402;
@@ -76,87 +80,34 @@ export function StellarFreighterPaywall({
     }
 
     if (!walletSigner || !address) {
-      setStatus(statusError("Connect a Stellar Freighter wallet before paying."));
+      setStatus(statusError("Connect a Stellar wallet before paying."));
       return;
     }
 
-    setIsPaying(true);
+    if (tokenBalanceFormatted === "") {
+      setStatus(statusInfo("Checking USDC balance..."));
+      await refreshBalance();
+      if (Number(tokenBalanceFormatted) < amount) {
+        setStatus(
+          statusError(`Insufficient balance. Make sure you have enough USDC on ${chainName}.`),
+        );
+      }
+    }
 
     try {
-      if (usdcBalance === null || usdcBalance === 0n) {
-        setStatus(statusInfo("Checking USDC balance..."));
-        await refreshBalance();
-        if (usdcBalance === null || usdcBalance === 0n) {
-          throw new Error(`Insufficient balance. Make sure you have USDC on ${chainName}.`);
-        }
-      }
-
-      setStatus(statusInfo("Waiting for user signature..."));
-
-      const createHeader = async (version: number) =>
-        exact.stellar.createPaymentHeader(walletSigner, version, paymentRequirement);
-
-      const paymentHeader = await createHeader(1);
-
-      setStatus(statusInfo("Settling payment..."));
-      const response = await fetch(x402.currentUrl, {
-        headers: {
-          "X-PAYMENT": paymentHeader,
-          "Access-Control-Expose-Headers": "X-PAYMENT-RESPONSE",
-        },
-      });
-
-      if (response.ok) {
-        setStatus(statusSuccess("🎉🎉🎉 Payment successful 🎉🎉🎉! Loading content..."));
-        await onSuccessfulResponse(response);
-        return;
-      }
-
-      if (response.status === 402) {
-        const errorData = await response.json().catch(() => ({}));
-        if (errorData && typeof errorData.x402Version === "number") {
-          const retryPayment = await exact.stellar.createPaymentHeader(
-            walletSigner,
-            errorData.x402Version,
-            paymentRequirement,
-          );
-
-          const retryResponse = await fetch(x402.currentUrl, {
-            headers: {
-              "X-PAYMENT": retryPayment,
-              "Access-Control-Expose-Headers": "X-PAYMENT-RESPONSE",
-            },
-          });
-
-          if (retryResponse.ok) {
-            setStatus(statusSuccess("🎉🎉🎉 Payment successful 🎉🎉🎉! Loading content..."));
-            await onSuccessfulResponse(retryResponse);
-            return;
-          }
-
-          throw new Error(
-            `Payment retry failed: ${retryResponse.status} ${retryResponse.statusText}`,
-          );
-        }
-
-        throw new Error(`Payment failed: ${response.statusText}`);
-      }
-
-      throw new Error(`Payment failed: ${response.status} ${response.statusText}`);
+      await submitPayment();
     } catch (error) {
       setStatus(statusError(error instanceof Error ? error.message : "😭 Payment failed 😭"));
-    } finally {
-      setIsPaying(false);
     }
   }, [
     x402,
     walletSigner,
     address,
-    usdcBalance,
-    refreshBalance,
+    tokenBalanceFormatted,
+    amount,
     chainName,
-    paymentRequirement,
-    onSuccessfulResponse,
+    refreshBalance,
+    submitPayment,
   ]);
 
   return (
@@ -190,8 +141,8 @@ export function StellarFreighterPaywall({
             <span className="payment-value">
               {address ? (
                 <button className="balance-button" onClick={() => setHideBalance(prev => !prev)}>
-                  {!hideBalance && formattedBalance
-                    ? `$${formattedBalance} USDC`
+                  {!hideBalance && tokenBalanceFormatted
+                    ? `$${tokenBalanceFormatted} USDC`
                     : isFetchingBalance
                       ? "Loading..."
                       : "••••• USDC"}
@@ -212,7 +163,7 @@ export function StellarFreighterPaywall({
         </div>
 
         <div className="cta-container">
-          {isConnected && address ? (
+          {address ? (
             <>
               <button className="button button-secondary" onClick={handleDisconnect}>
                 Disconnect

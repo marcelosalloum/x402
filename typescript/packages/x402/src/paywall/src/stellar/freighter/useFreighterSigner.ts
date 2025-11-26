@@ -6,7 +6,6 @@ import { SignAuthEntry, SignTransaction } from "@stellar/stellar-sdk/contract";
 
 type UseFreighterSignerParams = {
   address: string | null;
-  network: string | null;
   paymentRequirement: PaymentRequirements;
 };
 
@@ -17,17 +16,15 @@ type UseFreighterSignerReturn = Ed25519Signer | null;
  *
  * @param params - Hook parameters.
  * @param params.address - Wallet address to sign with.
- * @param params.network - Network identifier.
  * @param params.paymentRequirement - Payment requirement containing network info.
  * @returns A Stellar signer or null if not available.
  */
 export function useFreighterSigner({
   address,
-  network,
   paymentRequirement,
 }: UseFreighterSignerParams): UseFreighterSignerReturn {
   return useMemo(() => {
-    if (!address || !network) {
+    if (!address) {
       return null;
     }
 
@@ -79,5 +76,5 @@ export function useFreighterSigner({
       signAuthEntry: signAuthEntryFunc,
       signTransaction: signTransactionFunc as SignTransaction,
     };
-  }, [address, network, paymentRequirement]);
+  }, [address, paymentRequirement]);
 }
