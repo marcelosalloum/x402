@@ -10,10 +10,10 @@ declare module "x402/facilitator" {
     SettleResponse,
   } from "x402/types/verify";
 
-  // Define a minimal client type that works for both EVM and Solana signers
+  // Define a minimal client type that works for all network signers
   type SimpleClient = {
     [key: string]: unknown; // Allow any additional properties to avoid deep type instantiation issues
-    address?: string; // Optional to handle both EVM and Solana address formats
+    address?: string; // Optional to handle all network address formats
   };
 
   export function verify(

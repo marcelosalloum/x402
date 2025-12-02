@@ -5,11 +5,12 @@ import {
   PaymentRequirementsSchema,
   SupportedEVMNetworks,
   SupportedSVMNetworks,
+  SupportedStellarNetworks,
   VerifyResponse,
   createConnectedClient,
   createSigner,
 } from "x402/types";
-import { verify } from "x402/facilitator";
+import { SimpleClient, verify } from "x402/facilitator";
 import { ALLOWED_NETWORKS } from "../config";
 
 type VerifyRequest = {
@@ -47,7 +48,9 @@ export async function POST(req: Request) {
     ? createConnectedClient(body.paymentRequirements.network)
     : SupportedSVMNetworks.includes(network)
       ? await createSigner(network, process.env.SOLANA_PRIVATE_KEY)
-      : undefined;
+      : SupportedStellarNetworks.includes(network)
+        ? await createSigner(network, process.env.STELLAR_PRIVATE_KEY!)
+        : undefined;
 
   if (!client) {
     return Response.json(
@@ -106,7 +109,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const valid = await verify(client, paymentPayload, paymentRequirements);
+    const valid = await verify(client as SimpleClient, paymentPayload, paymentRequirements);
     return Response.json(valid);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

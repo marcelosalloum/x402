@@ -24,6 +24,7 @@ import {
   SupportedPaymentKindsResponse,
   VerifyResponse,
   SettleResponse,
+  SupportedStellarNetworks,
 } from "x402/types";
 import { safeBase64Encode } from "x402/shared";
 
@@ -124,6 +125,49 @@ export async function buildPaymentRequirements(
       },
       extra: {
         feePayer,
+      },
+    });
+  }
+  // stellar networks
+  else if (SupportedStellarNetworks.includes(network)) {
+    // get the supported payments from the facilitator
+    const paymentKinds = await supported();
+
+    // find the payment kind that matches the network and scheme
+    let maxLedger: string | undefined;
+    for (const kind of paymentKinds.kinds) {
+      if (kind.network === network && kind.scheme === "exact") {
+        maxLedger = kind?.extra?.maxLedger;
+        break;
+      }
+    }
+
+    // if no fee payer is found, throw an error
+    if (!maxLedger) {
+      throw new Error(`The facilitator did not provide a fee payer for network: ${network}.`);
+    }
+
+    paymentRequirements.push({
+      scheme: "exact",
+      network,
+      maxAmountRequired,
+      resource: resourceUrl,
+      description: description ?? "",
+      mimeType: mimeType ?? "",
+      payTo: payTo,
+      maxTimeoutSeconds: maxTimeoutSeconds ?? 60,
+      asset: asset.address,
+      outputSchema: {
+        input: {
+          type: "http",
+          method,
+          discoverable: discoverable ?? true,
+          ...inputSchema,
+        },
+        output: outputSchema,
+      },
+      extra: {
+        maxLedger,
       },
     });
   } else {
