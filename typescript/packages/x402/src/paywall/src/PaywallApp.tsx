@@ -2,9 +2,15 @@
 
 import { useCallback, useMemo } from "react";
 import type { PaymentRequirements } from "../../types/verify";
-import { choosePaymentRequirement, isEvmNetwork, isSvmNetwork } from "./paywallUtils";
+import {
+  choosePaymentRequirement,
+  isEvmNetwork,
+  isSvmNetwork,
+  isStellarNetwork,
+} from "./paywallUtils";
 import { EvmPaywall } from "./EvmPaywall";
 import { SolanaPaywall } from "./SolanaPaywall";
+import { StellarWKPaywall } from "./stellar/StellarWKPaywall";
 
 /**
  * Main Paywall App Component
@@ -53,6 +59,17 @@ export function PaywallApp() {
   if (isSvmNetwork(paymentRequirement.network)) {
     return (
       <SolanaPaywall
+        paymentRequirement={paymentRequirement}
+        onSuccessfulResponse={handleSuccessfulResponse}
+      />
+    );
+  }
+
+  // For Stellar networks, use wallet provider flag to switch between Freighter and SWK
+  // Defaults to "freighter" if not specified
+  if (isStellarNetwork(paymentRequirement.network)) {
+    return (
+      <StellarWKPaywall
         paymentRequirement={paymentRequirement}
         onSuccessfulResponse={handleSuccessfulResponse}
       />

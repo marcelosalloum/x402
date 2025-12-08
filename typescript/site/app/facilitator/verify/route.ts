@@ -5,6 +5,7 @@ import {
   PaymentRequirementsSchema,
   SupportedEVMNetworks,
   SupportedSVMNetworks,
+  SupportedStellarNetworks,
   VerifyResponse,
   createConnectedClient,
   createSigner,
@@ -47,7 +48,9 @@ export async function POST(req: Request) {
     ? createConnectedClient(body.paymentRequirements.network)
     : SupportedSVMNetworks.includes(network)
       ? await createSigner(network, process.env.SOLANA_PRIVATE_KEY)
-      : undefined;
+      : SupportedStellarNetworks.includes(network)
+        ? await createSigner(network, process.env.STELLAR_PRIVATE_KEY!)
+        : undefined;
 
   if (!client) {
     return Response.json(
