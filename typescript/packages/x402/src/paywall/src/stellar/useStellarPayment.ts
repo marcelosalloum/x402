@@ -4,7 +4,7 @@ import type { Ed25519Signer } from "../../../shared/stellar";
 import { statusError, statusInfo, statusSuccess, type Status } from "../status";
 import type { PaymentRequirements } from "../../../types/verify";
 
-type UseStellarPaymentParams = {
+export type UseStellarPaymentParams = {
   x402: X402Window | null;
   paymentRequirement: PaymentRequirements | null;
   walletSigner: Ed25519Signer | null;
@@ -12,7 +12,7 @@ type UseStellarPaymentParams = {
   onSuccessfulResponse: (response: Response) => Promise<void>;
 };
 
-type UseStellarPaymentResult = {
+export type UseStellarPaymentResult = {
   isPaying: boolean;
   submitPayment: () => Promise<void>;
 };

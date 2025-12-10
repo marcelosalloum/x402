@@ -4,7 +4,7 @@ import { type SignAuthEntry, type SignTransaction } from "@stellar/stellar-sdk/c
 import { getNetworkPassphrase, type Ed25519Signer } from "../../../shared/stellar";
 import { Network } from "../../../types";
 
-type UseSWKSignerParams = {
+export type UseSWKSignerParams = {
   address: string | null;
   network: Network;
   kit: StellarWalletsKit | null;

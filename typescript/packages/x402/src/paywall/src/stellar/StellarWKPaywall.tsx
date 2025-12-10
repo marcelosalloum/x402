@@ -8,7 +8,7 @@ import { useStellarPayment } from "./useStellarPayment";
 import { useSWKConnection } from "./useSWKConnection";
 import { useSWKSigner } from "./useSWKSigner";
 
-type StellarWKPaywallProps = {
+export type StellarWKPaywallProps = {
   paymentRequirement: PaymentRequirements;
   onSuccessfulResponse: (response: Response) => Promise<void>;
 };

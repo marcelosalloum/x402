@@ -10,8 +10,10 @@ const baseConfig = {
     "verify/index": "src/verify/index.ts",
     "facilitator/index": "src/facilitator/index.ts",
     "paywall/index": "src/paywall/index.ts",
+    "paywall/stellar/index": "src/paywall/src/stellar/index.ts",
     "types/index": "src/types/index.ts",
   },
+  external: ["react", "react-dom"],
   dts: {
     resolve: true,
   },

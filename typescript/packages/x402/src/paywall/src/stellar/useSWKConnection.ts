@@ -13,12 +13,12 @@ import { getNetworkPassphrase } from "../../../shared/stellar";
 import { statusClear, statusError, statusInfo, type Status } from "../status";
 import { Network } from "../../../types";
 
-type UseSWKConnectionParams = {
+export type UseSWKConnectionParams = {
   network: Network;
   onStatus: (status: Status | null) => void;
 };
 
-type UseSWKConnectionReturn = {
+export type UseSWKConnectionReturn = {
   kit: StellarWalletsKit | null;
   swkWallet: ISupportedWallet | null;
   address: string | null;

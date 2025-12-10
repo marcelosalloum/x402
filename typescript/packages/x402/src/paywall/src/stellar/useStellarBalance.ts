@@ -6,14 +6,14 @@ import { getNetworkPassphrase, getRpcUrl } from "../../../shared/stellar";
 import { statusError, type Status } from "../status";
 import { Network } from "../../../types";
 
-type UseBalanceParams = {
+export type UseBalanceParams = {
   address: string | null;
   network: Network;
   asset: string;
   onStatus: (status: Status | null) => void;
 };
 
-type UseBalanceReturn = {
+export type UseBalanceReturn = {
   isFetchingBalance: boolean;
   tokenBalanceRaw: bigint | null;
   tokenBalanceFormatted: string;
