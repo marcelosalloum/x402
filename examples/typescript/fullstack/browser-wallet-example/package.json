@@ -19,6 +19,7 @@
     "viem": "^2.31.3",
     "axios": "^1.10.0",
     "uuid": "^11.0.6",
+    "x402": "workspace:*",
     "x402-axios": "workspace:*",
     "x402-hono": "workspace:*"
   },
@@ -33,4 +34,4 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   }
-} 
+}

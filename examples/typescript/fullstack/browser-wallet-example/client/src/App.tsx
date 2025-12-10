@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { WalletConnect } from './components/WalletConnect';
-import { useWallet } from './contexts/WalletContext';
+import { useWallet } from './contexts';
 import { api, updateApiClient, type PaymentOption, type Session } from './services/api';
 import './App.css';
 

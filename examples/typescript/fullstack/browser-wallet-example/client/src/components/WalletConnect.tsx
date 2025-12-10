@@ -1,5 +1,4 @@
-import React from 'react';
-import { useWallet } from '../contexts/WalletContext';
+import { useWallet } from '../contexts';
 
 export function WalletConnect() {
   const { isConnected, address, isConnecting, error, connectWallet, disconnectWallet } = useWallet();
