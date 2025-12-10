@@ -82,7 +82,7 @@ export function useSWKSigner({
       signAuthEntry: signAuthEntryFunc,
       signTransaction: signTransactionFunc as SignTransaction,
     };
-  }, [address, paymentRequirement, kit]);
+  }, [address, paymentRequirement, kit, swkWallet]);
 }
 
 /**

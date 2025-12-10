@@ -11,11 +11,11 @@ import type { ISupportedWallet } from "@creit.tech/stellar-wallets-kit";
 
 import type { PaymentRequirements } from "../../../types/verify";
 import { getNetworkPassphrase } from "../../../shared/stellar";
-import { statusClear, statusError, statusInfo, type StatusCallback } from "../status";
+import { statusClear, statusError, statusInfo, type Status } from "../status";
 
 type UseSWKConnectionParams = {
   paymentRequirement: PaymentRequirements;
-  onStatus: StatusCallback;
+  onStatus: (status: Status | null) => void;
 };
 
 type UseSWKConnectionReturn = {

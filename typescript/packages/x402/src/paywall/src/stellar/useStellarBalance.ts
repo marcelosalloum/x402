@@ -4,12 +4,12 @@ import { AssembledTransaction } from "@stellar/stellar-sdk/contract";
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 import { getNetworkPassphrase, getRpcUrl } from "../../../shared/stellar";
 import type { PaymentRequirements } from "../../../types/verify";
-import { statusError, type StatusCallback } from "../status";
+import { statusError, type Status } from "../status";
 
 type UseBalanceParams = {
   address: string | null;
   paymentRequirement: PaymentRequirements;
-  onStatus: StatusCallback;
+  onStatus: (status: Status | null) => void;
 };
 
 type UseBalanceReturn = {

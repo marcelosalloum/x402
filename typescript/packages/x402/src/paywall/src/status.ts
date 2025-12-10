@@ -9,11 +9,6 @@ export type Status =
   | { type: "warning"; message: string };
 
 /**
- * Status callback function type.
- */
-export type StatusCallback = (status: Status | null) => void;
-
-/**
  * Helper to create a success status.
  *
  * @param message - Success message to display.
