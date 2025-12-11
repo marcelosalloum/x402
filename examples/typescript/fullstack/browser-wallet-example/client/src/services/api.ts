@@ -2,11 +2,13 @@ import axios from "axios";
 import type { AxiosInstance } from "axios";
 import type { WalletClient } from "viem";
 import { withPaymentInterceptor } from "x402-axios";
+import type { Signer } from "x402/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
 // Base axios instance without payment interceptor
-const baseApiClient = axios.create({
+const defaultApiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
@@ -14,18 +16,31 @@ const baseApiClient = axios.create({
 });
 
 // This will be dynamically set based on wallet connection
-let apiClient: AxiosInstance = baseApiClient;
+let apiClient: AxiosInstance = defaultApiClient;
 
 // Update the API client with a wallet
-export function updateApiClient(walletClient: WalletClient | null) {
-  if (walletClient && walletClient.account) {
-    // Create axios instance with x402 payment interceptor
-    apiClient = withPaymentInterceptor(baseApiClient, walletClient as any);
-    console.log("💳 API client updated with wallet:", walletClient.account.address);
-  } else {
-    // No wallet connected - reset to base client
-    apiClient = baseApiClient;
+export function updateApiClient(
+  walletClient: WalletClient | Signer | null,
+  walletType: "evm" | "stellar" | null
+) {
+  if (!walletClient || !walletType) {
+    apiClient = defaultApiClient;
     console.log("⚠️ API client reset - no wallet connected");
+    return;
+  }
+
+  if (walletType === "evm") {
+    apiClient = withPaymentInterceptor(defaultApiClient, walletClient as any);
+    console.log(
+      "💳 API client updated with EVM wallet:",
+      (walletClient as WalletClient).account?.address
+    );
+  } else if (walletType === "stellar") {
+    apiClient = withPaymentInterceptor(defaultApiClient, walletClient as Signer);
+    console.log("⭐ API client updated with Stellar wallet");
+  } else {
+    apiClient = defaultApiClient;
+    console.log("⚠️ API client reset - unknown wallet type:", walletType);
   }
 }
 
@@ -89,4 +104,4 @@ export interface SessionValidation {
   valid: boolean;
   error?: string;
   session?: Session;
-} 
+}

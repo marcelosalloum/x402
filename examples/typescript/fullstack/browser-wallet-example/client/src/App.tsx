@@ -5,7 +5,7 @@ import { api, updateApiClient, type PaymentOption, type Session } from './servic
 import './App.css';
 
 function App() {
-  const { walletClient } = useWallet();
+  const { walletClient, type } = useWallet();
   const [serverStatus, setServerStatus] = useState<string>('checking...');
   const [paymentOptions, setPaymentOptions] = useState<PaymentOption[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -15,8 +15,8 @@ function App() {
 
   // Update API client when wallet changes
   useEffect(() => {
-    updateApiClient(walletClient);
-  }, [walletClient]);
+    updateApiClient(walletClient, type);
+  }, [walletClient, type]);
 
   // Check server health on mount
   useEffect(() => {

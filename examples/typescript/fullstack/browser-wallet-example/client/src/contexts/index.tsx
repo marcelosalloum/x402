@@ -2,15 +2,21 @@ import React, { useContext } from "react";
 import type { WalletClient } from "viem";
 import {
   type Network,
+  Signer,
   SupportedEVMNetworks,
   SupportedStellarNetworks,
 } from "x402/types";
 import { EvmWalletContext, EvmWalletProvider } from "./EvmWalletContext";
+import {
+  StellarWalletContext,
+  StellarWalletProvider,
+} from "./StellarWalletContext";
 
 export interface WalletContextType {
+  type: "evm" | "stellar";
   isConnected: boolean;
   address: string | null;
-  walletClient: WalletClient | null;
+  walletClient: WalletClient | Signer | null;
   error: string | null;
   isConnecting: boolean;
   connectWallet: () => Promise<void>;
@@ -24,14 +30,14 @@ const isStellarNetwork = SupportedStellarNetworks.includes(network);
 /**
  * Gets the appropriate wallet context based on the current network configuration.
  * @returns The wallet context for the current network type
- * @throws {Error} When the network is unsupported or Stellar networks are not yet implemented
+ * @throws {Error} When the network is unsupported
  */
 function getWalletContext() {
   if (isEvmNetwork) {
     return EvmWalletContext;
   }
   if (isStellarNetwork) {
-    throw new Error("Stellar wallet context is not yet implemented");
+    return StellarWalletContext;
   }
   const evmNetworks = SupportedEVMNetworks.join(", ");
   const stellarNetworks = SupportedStellarNetworks.join(", ");
@@ -67,7 +73,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return <EvmWalletProvider>{children}</EvmWalletProvider>;
   }
   if (isStellarNetwork) {
-    throw new Error("Stellar wallet provider is not yet implemented");
+    return <StellarWalletProvider>{children}</StellarWalletProvider>;
   }
 
   const evmNetworks = SupportedEVMNetworks.join(", ");

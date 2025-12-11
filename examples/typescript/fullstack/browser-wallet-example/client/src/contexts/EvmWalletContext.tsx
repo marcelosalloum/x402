@@ -192,7 +192,8 @@ export function EvmWalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [address, disconnectEvmWallet]);
 
-  const value: WalletContextType = {
+  const evmWalletContextValue: WalletContextType = {
+    type: "evm",
     isConnected,
     address,
     walletClient,
@@ -203,7 +204,7 @@ export function EvmWalletProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <EvmWalletContext.Provider value={value}>
+    <EvmWalletContext.Provider value={evmWalletContextValue}>
       {children}
     </EvmWalletContext.Provider>
   );
