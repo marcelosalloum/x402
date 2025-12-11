@@ -29,23 +29,25 @@ export function StellarWKPaywall({
 }: StellarWKPaywallProps) {
   const [status, setStatus] = useState<Status | null>(null);
   const [hideBalance, setHideBalance] = useState(true);
+  const { network, asset } = paymentRequirement;
 
   const { kit, swkWallet, address, connect, disconnect } = useSWKConnection({
-    paymentRequirement,
+    network,
     onStatus: setStatus,
   });
 
   const { isFetchingBalance, tokenBalanceFormatted, refreshBalance, resetBalance } =
     useStellarBalance({
       address,
-      paymentRequirement,
+      network,
+      asset,
       onStatus: setStatus,
     });
 
   const walletSigner = useSWKSigner({
     kit,
     swkWallet,
-    paymentRequirement,
+    network,
     address,
   });
 

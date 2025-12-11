@@ -3,12 +3,13 @@ import { formatUnits } from "viem";
 import { AssembledTransaction } from "@stellar/stellar-sdk/contract";
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 import { getNetworkPassphrase, getRpcUrl } from "../../../shared/stellar";
-import type { PaymentRequirements } from "../../../types/verify";
 import { statusError, type Status } from "../status";
+import { Network } from "../../../types";
 
 type UseBalanceParams = {
   address: string | null;
-  paymentRequirement: PaymentRequirements;
+  network: Network;
+  asset: string;
   onStatus: (status: Status | null) => void;
 };
 
@@ -25,13 +26,15 @@ type UseBalanceReturn = {
  *
  * @param params - Hook parameters containing account details and callbacks.
  * @param params.address - Wallet address whose balance is being tracked.
- * @param params.paymentRequirement - Payment requirement describing the asset to monitor.
+ * @param params.network - Network to fetch the balance from.
+ * @param params.asset - Asset to fetch the balance of.
  * @param params.onStatus - Callback for reporting status messages to the UI.
  * @returns Balance state and helper methods for refreshing/resetting data.
  */
 export function useStellarBalance({
   address,
-  paymentRequirement,
+  network,
+  asset,
   onStatus,
 }: UseBalanceParams): UseBalanceReturn {
   const [tokenBalanceRaw, setTokenBalanceRaw] = useState<bigint | null>(null);
@@ -52,9 +55,9 @@ export function useStellarBalance({
     setIsFetchingBalance(true);
 
     try {
-      const networkPassphrase = getNetworkPassphrase(paymentRequirement.network);
-      const rpcUrl = getRpcUrl(paymentRequirement.network);
-      const contractId = paymentRequirement.asset;
+      const networkPassphrase = getNetworkPassphrase(network);
+      const rpcUrl = getRpcUrl(network);
+      const contractId = asset;
 
       // Simulate to fetch the balance and decimals in parallel
       const [balanceTx, decimalsTx] = await Promise.all([
@@ -103,7 +106,7 @@ export function useStellarBalance({
     } finally {
       setIsFetchingBalance(false);
     }
-  }, [address, paymentRequirement, onStatus, resetBalance]);
+  }, [address, network, asset, onStatus, resetBalance]);
 
   useEffect(() => {
     if (address) {

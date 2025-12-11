@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { ISupportedWallet, StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 import { type SignAuthEntry, type SignTransaction } from "@stellar/stellar-sdk/contract";
 import { getNetworkPassphrase, type Ed25519Signer } from "../../../shared/stellar";
-import { type PaymentRequirements } from "../../../types/verify";
+import { Network } from "../../../types";
 
 type UseSWKSignerParams = {
   address: string | null;
-  paymentRequirement: PaymentRequirements;
+  network: Network;
   kit: StellarWalletsKit | null;
   swkWallet: ISupportedWallet | null;
 };
@@ -16,14 +16,14 @@ type UseSWKSignerParams = {
  *
  * @param params - Hook parameters.
  * @param params.address - Wallet address to sign with.
- * @param params.paymentRequirement - Payment requirement containing network info.
+ * @param params.network - Network to sign with.
  * @param params.kit - Stellar Wallet Kit instance.
  * @param params.swkWallet - Stellar Wallet Kit wallet instance.
  * @returns A Stellar signer or null if not available.
  */
 export function useSWKSigner({
   address,
-  paymentRequirement,
+  network,
   kit,
   swkWallet,
 }: UseSWKSignerParams): Ed25519Signer | null {
@@ -42,8 +42,7 @@ export function useSWKSigner({
       try {
         const signingResult = await kit.signAuthEntry(authEntry, {
           address,
-          networkPassphrase:
-            opts?.networkPassphrase || getNetworkPassphrase(paymentRequirement.network),
+          networkPassphrase: opts?.networkPassphrase || getNetworkPassphrase(network),
         });
 
         let { signedAuthEntry } = signingResult;
@@ -82,7 +81,7 @@ export function useSWKSigner({
       signAuthEntry: signAuthEntryFunc,
       signTransaction: signTransactionFunc as SignTransaction,
     };
-  }, [address, paymentRequirement, kit, swkWallet]);
+  }, [address, network, kit, swkWallet]);
 }
 
 /**

@@ -9,12 +9,12 @@ import {
 } from "@creit.tech/stellar-wallets-kit";
 import type { ISupportedWallet } from "@creit.tech/stellar-wallets-kit";
 
-import type { PaymentRequirements } from "../../../types/verify";
 import { getNetworkPassphrase } from "../../../shared/stellar";
 import { statusClear, statusError, statusInfo, type Status } from "../status";
+import { Network } from "../../../types";
 
 type UseSWKConnectionParams = {
-  paymentRequirement: PaymentRequirements;
+  network: Network;
   onStatus: (status: Status | null) => void;
 };
 
@@ -30,12 +30,12 @@ type UseSWKConnectionReturn = {
  * Manages Stellar Wallet Kit connection state.
  *
  * @param params - Hook parameters.
- * @param params.paymentRequirement - Payment requirement containing network info.
+ * @param params.network - Network to connect to.
  * @param params.onStatus - Callback for status messages.
  * @returns Connection state and methods.
  */
 export function useSWKConnection({
-  paymentRequirement,
+  network,
   onStatus,
 }: UseSWKConnectionParams): UseSWKConnectionReturn {
   const [kit, setKit] = useState<StellarWalletsKit | null>(null);
@@ -45,7 +45,7 @@ export function useSWKConnection({
   useEffect(() => {
     const initKit = async () => {
       try {
-        const networkPassphrase = getNetworkPassphrase(paymentRequirement.network);
+        const networkPassphrase = getNetworkPassphrase(network);
         const newKit = new StellarWalletsKit({
           network: networkPassphrase as WalletNetwork,
           // These are the only modules that implement signAuthEntries on SWK 2 (beta)
@@ -69,7 +69,7 @@ export function useSWKConnection({
     };
 
     void initKit();
-  }, [paymentRequirement.network, onStatus]);
+  }, [network, onStatus]);
 
   const connect = useCallback(async () => {
     if (!kit) {
@@ -94,9 +94,9 @@ export function useSWKConnection({
             throw new Error("Failed to get SWK's wallet network passphrase.");
           }
 
-          const desiredNetworkPassphrase = getNetworkPassphrase(paymentRequirement.network);
+          const desiredNetworkPassphrase = getNetworkPassphrase(network);
           if (swkNetworkPassphrase !== desiredNetworkPassphrase) {
-            const networkName = paymentRequirement.network === "stellar" ? "Mainnet" : "Testnet";
+            const networkName = network === "stellar" ? "Mainnet" : "Testnet";
             throw new Error(`Please switch your wallet to ${networkName} network, then try again.`);
           }
 
@@ -116,7 +116,7 @@ export function useSWKConnection({
       setAddress(null);
       setSwkWallet(null);
     }
-  }, [kit, paymentRequirement, onStatus]);
+  }, [kit, network, onStatus]);
 
   const disconnect = useCallback(async () => {
     if (kit) {
