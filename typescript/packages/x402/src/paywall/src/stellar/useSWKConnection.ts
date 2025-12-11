@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   StellarWalletsKit,
   WalletNetwork,
@@ -41,6 +41,11 @@ export function useSWKConnection({
   const [kit, setKit] = useState<StellarWalletsKit | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [swkWallet, setSwkWallet] = useState<ISupportedWallet | null>(null);
+  const onStatusRef = useRef(onStatus);
+
+  useEffect(() => {
+    onStatusRef.current = onStatus;
+  });
 
   useEffect(() => {
     const initKit = async () => {
@@ -60,7 +65,7 @@ export function useSWKConnection({
         setKit(newKit);
       } catch (error) {
         console.error("Failed to initialize Stellar Wallet Kit", error);
-        onStatus(
+        onStatusRef.current(
           statusError(
             error instanceof Error ? error.message : "Failed to initialize Stellar Wallet Kit.",
           ),
@@ -69,18 +74,18 @@ export function useSWKConnection({
     };
 
     void initKit();
-  }, [network, onStatus]);
+  }, [network]);
 
   const connect = useCallback(async () => {
     if (!kit) {
-      onStatus(statusError("Wallet kit is not ready."));
+      onStatusRef.current(statusError("Wallet kit is not ready."));
       return;
     }
 
     try {
       await kit.openModal({
         onWalletSelected: async (wallet: ISupportedWallet) => {
-          onStatus(statusInfo("Connecting to wallet..."));
+          onStatusRef.current(statusInfo("Connecting to wallet..."));
 
           kit.setWallet(wallet.id);
 
@@ -102,7 +107,7 @@ export function useSWKConnection({
 
           setSwkWallet(wallet);
           setAddress(addressResult.address);
-          onStatus(statusClear());
+          onStatusRef.current(statusClear());
         },
         onClosed: () => {
           console.log("===> SWK wallet closed");
@@ -110,13 +115,13 @@ export function useSWKConnection({
       });
     } catch (error) {
       console.error("Failed to connect wallet", error);
-      onStatus(
+      onStatusRef.current(
         statusError(error instanceof Error ? error.message : "Failed to connect to wallet."),
       );
       setAddress(null);
       setSwkWallet(null);
     }
-  }, [kit, network, onStatus]);
+  }, [kit, network]);
 
   const disconnect = useCallback(async () => {
     if (kit) {
