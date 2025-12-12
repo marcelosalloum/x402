@@ -1,6 +1,6 @@
-# x402 Gas Estimation Scripts
+# x402 Network Comparison Scripts
 
-Scripts for estimating **actual x402 payment transaction costs** across EVM and Stellar networks. All costs are normalized to USDC.
+Scripts for comparing **transaction costs** and **finality times** across EVM and Stellar networks for x402 payments. All costs are normalized to USDC.
 
 ## What These Scripts Estimate
 
@@ -99,9 +99,67 @@ pnpm compare base --stellar-sponsored # Stellar fees sponsored
    Reason:       EVM is 85.1% cheaper (0.000335 vs 0.002251 USDC)
 ```
 
+## Example Finality Output
+
+### Soft Finality Comparison
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║     x402 Economic Load Balancer - Finality Comparison        ║
+║                (SOFT Finality)                                ║
+╚══════════════════════════════════════════════════════════════╝
+
+⛽ base-sepolia (EVM) [L2]
+────────────────────────────────────────
+   Chain ID:         84532
+   Soft Finality:    2s
+   Hard Finality:    15m
+   Notes:            Soft: L2 block confirmation (~2s). Hard: L1 settlement + challenge period (~15 min)
+
+⭐ stellar-testnet (Stellar)
+────────────────────────────────────────
+   Soft Finality:    5s
+   Hard Finality:    5s
+   Notes:            Stellar uses SCP consensus. Soft and hard finality are equivalent (~1 ledger = ~5s)
+
+🏆 Recommendation
+────────────────────────────────────────
+   Best Option:      ⛽ base-sepolia
+   Reason:           EVM is 2.5x faster (2s vs 5s)
+```
+
+### Hard Finality Comparison
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║     x402 Economic Load Balancer - Finality Comparison        ║
+║                (HARD Finality)                                ║
+╚══════════════════════════════════════════════════════════════╝
+
+⛽ base (EVM) [L2]
+────────────────────────────────────────
+   Chain ID:         8453
+   Soft Finality:    2s
+   Hard Finality:    15m
+   Notes:            Soft: L2 block confirmation (~2s). Hard: L1 settlement + challenge period (~15 min)
+
+⭐ stellar-mainnet (Stellar)
+────────────────────────────────────────
+   Soft Finality:    5s
+   Hard Finality:    5s
+   Notes:            Stellar uses SCP consensus. Soft and hard finality are equivalent (~1 ledger = ~5s)
+
+🏆 Recommendation
+────────────────────────────────────────
+   Best Option:      ⭐ stellar-mainnet
+   Reason:           Stellar is 180.0x faster (5s vs 15m)
+```
+
 ## API Reference
 
-### `getEvmFeeCost(network, isSponsored)`
+### Gas/Fee Estimation APIs
+
+#### `getEvmFeeCost(network, isSponsored)`
 
 ```typescript
 import { getEvmFeeCost } from "./evm-gas.js";
@@ -140,6 +198,59 @@ const estimate = await getStellarFeeCost("stellar-testnet", false);
 // }
 ```
 
+## Finality Estimation
+
+These scripts measure **real-time network finality** by querying live RPC nodes.
+
+### Methodologies
+
+| Finality Type | EVM (Base/L2) | Stellar |
+|--------------|---------------|---------|
+| **Soft Finality** <br> *(Sequencer Confirmation)* | Measures average block time over last **10 blocks**. Represents time for a transaction to be included in an L2 block. | Measures average ledger close time over last **10 ledgers**. Represents time for a transaction to be confirmed by SCP. |
+| **Hard Finality** <br> *(L1 Finalization)* | Measures lag between current L2 tip and the last block marked `finalized` by the rollup (reorg-safe). | Same as Soft Finality. Stellar Consensus Protocol (SCP) provides immediate finality once a ledger closes. |
+
+### Usage
+
+```bash
+# Compare Soft Finality (Sequencer Confirmation)
+pnpm compare:soft-finality
+
+# Compare Hard Finality (L1 Settlement)
+pnpm compare:hard-finality
+```
+
+### API Reference
+
+#### `getEvmFinality(network)`
+
+```typescript
+import { getEvmFinality } from "./evm-finality.js";
+
+const finality = await getEvmFinality("base");
+// {
+//   network: "base",
+//   softFinalitySeconds: 2.0,       // Live measurement (last 10 blocks)
+//   hardFinalitySeconds: 945,       // Live lag from 'finalized' block
+//   softFinalityFormatted: "2.0s",
+//   hardFinalityFormatted: "15m 45s",
+//   // ...
+// }
+```
+
+#### `getStellarFinality(network)`
+
+```typescript
+import { getStellarFinality } from "./stellar-finality.js";
+
+const finality = await getStellarFinality("stellar-mainnet");
+// {
+//   network: "stellar-mainnet",
+//   softFinalitySeconds: 5.2,       // Live measurement (last 10 ledgers)
+//   hardFinalitySeconds: 5.2,       // Same as soft
+//   // ...
+// }
+```
+
 ## Price Data Source
 
 **Live Price Oracle**: Uses Coinbase Pro API for real-time prices
@@ -172,6 +283,15 @@ const estimate = await getStellarFeeCost("stellar-testnet", false);
 2. **Stellar fees** include significant resource fees for Soroban contracts
 3. **Sponsorship** makes either network free (facilitator pays)
 4. **Gas prices fluctuate** — run scripts for real-time comparisons
+
+### Transaction Finality
+1. **Soft finality** (transaction included):
+   - Base/L2s: ~2 seconds (L2 block confirmation)
+   - Stellar: ~5 seconds (1 ledger close time)
+2. **Hard finality** (transaction irreversible):
+   - Base/L2s: ~15 minutes (L1 settlement + challenge period)
+   - Stellar: ~5 seconds (SCP consensus finality)
+3. **Stellar has faster hard finality** due to instant consensus vs L2 rollup delays
 5. **Live price oracle** ensures accurate USD conversions without manual updates
 6. **Price transparency** — all exchange rates are displayed for verification
 7. **Robust fallbacks** prevent failures if price APIs are unavailable
