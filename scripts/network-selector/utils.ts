@@ -14,9 +14,9 @@ export async function getCryptoPrice(symbol: string): Promise<number> {
     return parseFloat(json.data.amount);
   } catch (error) {
     console.warn(`Failed to fetch price for ${symbol}, using fallback.`);
-    // Fallback prices if API fails
     if (symbol === "ETH") return 3200;
     if (symbol === "XLM") return 0.24;
     return 0;
   }
 }
+

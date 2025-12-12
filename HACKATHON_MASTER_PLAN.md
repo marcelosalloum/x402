@@ -1,5 +1,5 @@
 # HACKATHON_MASTER_PLAN.md
-> **Status:** 🟢 Phase 0 Complete / Ready for Phase 1
+> **Status:** 🟢 Phase 1 Complete / Ready for Phase 2
 > **Goal:** Build the "Economic Load Balancer" for x402 (Stellar + EVM) and submit it to the x402 hackathon (https://www.x402hackathon.com/).
 > **Repo Context:** `coinbase/x402` (upstream aka origin) vs `marcelosalloum/x402` (branches: `stellar-support`, `stellar-paywall-support`)
 
@@ -38,9 +38,9 @@ A middleware client that automatically routes agent payments to the most optimal
 
 ## 3. Implementation Roadmap
 - [x] **Phase 0: Recon & Alignment**: Compare forks, validate schemas, test gas estimation with PoC spikes
-- [ ] **Phase 1: The Core SDK**: NodeJS/TS implementation of the ranking logic
+- [x] **Phase 1: The Core SDK**: NodeJS/TS implementation of the ranking logic (`NetworkAnalysis`, `PaymentRanker`)
 - [ ] **Phase 2: CLI Demo**: A script that requests a resource and logs the decision process
-- [ ] **Phase 3: Web Dashboard**: React app visualizing the "Race" between chains, where the user can see the cost, speed, and finality of each chain, and choose the best one from a dropdown or a button to "Pay". Check the paywall from `examples/tpescript/fullstack/next`
+- [ ] **Phase 3: Web Dashboard**: React app visualizing the "Race" between chains, where the user can see the cost, speed, and finality of each chain, and choose the best one from a dropdown or a button to "Pay". Check the paywall from `examples/typescript/fullstack/next`
 
 ## 4. Open Questions — ANSWERED ✅
 
@@ -154,7 +154,7 @@ const estimate = await getEvmFeeCost("base-sepolia", false);
 ### 6.2 Stellar Fee Estimation
 
 ```typescript
-import { getStellarFeeCost } from "./stellar-fee.js";
+import { getStellarFeeCost } from "./stellar-gas.js";
 
 // Simulates actual Soroban token transfers using native XLM contract
 const estimate = await getStellarFeeCost("stellar-testnet", false);
@@ -171,32 +171,50 @@ const estimate = await getStellarFeeCost("stellar-testnet", false);
 // }
 ```
 
-### 6.3 Unified Cost Comparator Interface
+### 6.3 NetworkAnalysis (Cost + Finality Estimator)
 
 ```typescript
-import { PaymentRequirements, Network } from "x402/types";
+import { NetworkAnalysis } from "./network-analysis.js";
 
-export type CostEstimate = {
-  network: Network;
-  paymentAmount: bigint;       // The actual payment in atomic units
-  networkFeeUsdc: string;      // Gas/transaction fee in USDC (unified)
-  totalCostUsdc: string;       // Total cost in USDC
-  finalityTimeMs: number;      // Expected finality time in milliseconds
-  isSponsored: boolean;        // Whether facilitator sponsors fees
-};
+const analysis = new NetworkAnalysis({ cacheTtlMs: 60_000 });
 
-export interface ICostEstimator {
-  estimate(requirement: PaymentRequirements, isSponsored?: boolean): Promise<CostEstimate>;
-  isCacheValid(network: Network): boolean;
-  invalidateCache(network: Network): void;
-}
+// Get combined cost + finality estimate
+const estimate = await analysis.getNetworkEstimate("base-sepolia");
+// {
+//   cost: { feeUsdc: "0.000319", feeNative: "0.0000001...", isSponsored: false, ... },
+//   finality: { softFinalityMs: 2000, hardFinalityMs: 900000, ... }
+// }
 
-export interface IRankingEngine {
-  rank(
-    options: PaymentRequirements[],
-    criteria: "price" | "speed" | "finality"
-  ): PaymentRequirements;
-}
+// Get multiple estimates in parallel
+const estimates = await analysis.getMultipleEstimates(
+  ["base-sepolia", "stellar-testnet"],
+  ["stellar-testnet"]  // sponsored networks
+);
+```
+
+### 6.4 PaymentRanker (Ranking Engine)
+
+```typescript
+import { PaymentRanker, type PaymentRequirement } from "./payment-ranker.js";
+
+const requirements: PaymentRequirement[] = [
+  { network: "base-sepolia", amount: "1000000", asset: "USDC", payTo: "0x..." },
+  { network: "stellar-testnet", amount: "1000000", asset: "USDC", payTo: "G..." },
+];
+
+const ranker = new PaymentRanker({
+  cacheTtlMs: 60_000,
+  sponsoredNetworks: ["stellar-testnet"],
+});
+
+// Rank by lowest cost
+const result = await ranker.rank(requirements, "lowest-cost");
+console.log(result.best.network);   // "stellar-testnet" (sponsored = 0 USDC)
+console.log(result.reason);         // "stellar-testnet is sponsored (0 USDC fee)"
+
+// Rank by fastest finality
+const fast = await ranker.rank(requirements, "fastest-finality");
+console.log(fast.best.network);     // "base-sepolia" (2s vs 5s)
 ```
 
 ---
@@ -215,45 +233,51 @@ export interface IRankingEngine {
 
 ---
 
-## 8. Next Steps for Phase 1
+## 8. Phase 1 Status ✅
 
-1. **Continue using the `x402-hackathon` branch**
-2. **Implement `ICostEstimator`** with concrete EVM and Stellar implementations
-3. **Implement `IRankingEngine`** with criteria-based selection
-4. **Create unit tests** for the estimator and ranking logic
-5. **Build CLI demo** to show decision process
+**Completed:**
+1. ✅ `NetworkAnalysis` class with EVM and Stellar cost/finality estimation
+2. ✅ `PaymentRanker` class with criteria-based selection (`lowest-cost`, `fastest-finality`)
+3. ✅ 60s TTL caching with invalidation
+4. ✅ Demo script (`pnpm demo`) showing decision process
+5. ✅ Sponsored payments support
+6. ✅ Chain health checker (unhealthy networks are skipped)
+7. ✅ Multi-network comparison (N networks, order-independent)
+
+**Missing (optional):**
+- ❌ Unit tests for `NetworkAnalysis` and `PaymentRanker`
 
 ---
 
 ## 9. Scripts & Tooling
 
-Gas estimation scripts are available in `scripts/gas-estimation/`:
+Network selection scripts are available in `scripts/network-selector/`:
 
 ```bash
-cd scripts/gas-estimation && pnpm install
+cd scripts/network-selector && pnpm install
 
-# EVM gas estimation (network as first argument, defaults to base-sepolia)
-pnpm evm                          # Base Sepolia
-pnpm evm base                     # Base mainnet
-pnpm evm base-sepolia             # Base Sepolia testnet
-pnpm evm base --sponsored         # Sponsored (cost = 0 USDC)
-pnpm evm --list                   # List all supported networks
+# Run the full demo (NetworkAnalysis + PaymentRanker + Health)
+pnpm demo
 
-# Stellar fee estimation (network as first argument, defaults to stellar-testnet)
-pnpm stellar                      # Stellar Testnet
-pnpm stellar testnet              # Stellar Testnet (explicit)
-pnpm stellar mainnet              # Stellar Mainnet
-pnpm stellar stellar-mainnet      # Stellar Mainnet (explicit)
-pnpm stellar --sponsored          # Sponsored (cost = 0 USDC)
-pnpm stellar --list               # List supported networks
+# Individual demos
+pnpm demo:analysis     # NetworkAnalysis demo
+pnpm demo:health       # Health check demo
+pnpm demo:ranker       # PaymentRanker demo
+pnpm demo:sponsored    # Sponsored payments demo
 
-# Compare networks (EVM network as first argument, Stellar network as second)
-pnpm compare                      # base-sepolia vs stellar-testnet
-pnpm compare base stellar         # base vs stellar-testnet
-pnpm compare base-sepolia stellar-mainnet  # base-sepolia vs stellar mainnet
-pnpm compare base --evm-sponsored # Base with sponsored EVM fees
+# Compare N networks (order doesn't matter)
+pnpm compare                              # base-sepolia vs stellar-testnet
+pnpm compare stellar base base-sepolia    # 3-way comparison
+pnpm compare base --sponsored=base        # Mark base as sponsored
+
+# Compare finality (N networks)
+pnpm compare:finality                     # Soft finality (default)
+pnpm compare:finality --type=hard         # Hard finality
+pnpm compare:finality stellar base        # Order doesn't matter
+
+# Individual network estimation
+pnpm evm base-sepolia             # EVM gas estimation
+pnpm stellar testnet              # Stellar fee estimation
 ```
 
-**Supported EVM Networks:** base, base-sepolia
-
-**Supported Stellar Networks:** stellar-testnet, mainnet
+**Supported Networks:** base, base-sepolia, stellar-testnet, stellar-mainnet

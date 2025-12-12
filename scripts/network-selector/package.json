@@ -1,0 +1,32 @@
+{
+  "name": "x402-network-selector",
+  "version": "1.0.0",
+  "description": "Network selection and cost/finality estimation for x402 Economic Load Balancer",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "evm": "tsx evm-gas.ts",
+    "stellar": "tsx stellar-gas.ts",
+    "evm-finality": "tsx evm-finality.ts",
+    "stellar-finality": "tsx stellar-finality.ts",
+    "compare": "tsx compare-costs.ts",
+    "compare:costs": "tsx compare-costs.ts",
+    "compare:finality": "tsx compare-finality.ts",
+    "compare:soft-finality": "tsx compare-finality.ts --type=soft",
+    "compare:hard-finality": "tsx compare-finality.ts --type=hard",
+    "demo": "tsx demo.ts",
+    "demo:analysis": "tsx demo.ts --analysis",
+    "demo:health": "tsx demo.ts --health",
+    "demo:ranker": "tsx demo.ts --ranker",
+    "demo:sponsored": "tsx demo.ts --sponsored"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.4.2",
+    "viem": "^2.41.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
