@@ -1,0 +1,19 @@
+{
+  "name": "@x402-elb/network-analysis",
+  "version": "1.0.0",
+  "description": "Real-time network cost and finality estimation for x402 Economic Load Balancer",
+  "type": "module",
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.4.2",
+    "viem": "^2.41.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.0",
+    "typescript": "^5.9.3"
+  }
+}
+

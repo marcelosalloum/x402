@@ -3,6 +3,7 @@ packages:
   - "servers/*"
   - "clients/*"
   - "fullstack/*"
+  - "economic-load-balancer/*"
   - "dynamic_agent"
   - "agent"
   - "mcp-embedded-wallet"

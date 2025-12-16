@@ -1,0 +1,27 @@
+{
+  "name": "x402-elb-cli",
+  "version": "1.0.0",
+  "description": "CLI demo for x402 Economic Load Balancer",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "cli": "tsx index.ts",
+    "cli:cost": "tsx index.ts --criteria lowest-cost",
+    "cli:soft-finality": "tsx index.ts --criteria fastest-soft-finality",
+    "cli:hard-finality": "tsx index.ts --criteria fastest-hard-finality"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.4.2",
+    "axios": "^1.7.9",
+    "commander": "^12.1.0",
+    "dotenv": "^16.5.0",
+    "viem": "^2.41.2",
+    "x402": "workspace:*",
+    "x402-axios": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

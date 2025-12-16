@@ -1,5 +1,5 @@
 # HACKATHON_MASTER_PLAN.md
-> **Status:** 🟢 Phase 1 Complete / Ready for Phase 2
+> **Status:** 🟢 Phase 2 Complete / Ready Phase 3
 > **Goal:** Build the "Economic Load Balancer" for x402 (Stellar + EVM) and submit it to the x402 hackathon (https://www.x402hackathon.com/).
 > **Repo Context:** `coinbase/x402` (upstream aka origin) vs `marcelosalloum/x402` (branches: `stellar-support`, `stellar-paywall-support`)
 
@@ -39,8 +39,8 @@ A middleware client that automatically routes agent payments to the most optimal
 ## 3. Implementation Roadmap
 - [x] **Phase 0: Recon & Alignment**: Compare forks, validate schemas, test gas estimation with PoC spikes
 - [x] **Phase 1: The Core SDK**: NodeJS/TS implementation of the ranking logic (`NetworkAnalysis`, `PaymentRanker`)
-- [ ] **Phase 2: CLI Demo**: A script that requests a resource and logs the decision process
-- [ ] **Phase 3: Web Dashboard**: React app visualizing the "Race" between chains, where the user can see the cost, speed, and finality of each chain, and choose the best one from a dropdown or a button to "Pay". Check the paywall from `examples/typescript/fullstack/next`
+- [x] **Phase 2: CLI Demo**: A script that requests a resource and logs the decision process with real-time network data
+- [ ] **Phase 3: Web Dashboard**: React app visualizing the "Race" between chains with live gas feeds
 
 ## 4. Open Questions — ANSWERED ✅
 
@@ -195,26 +195,25 @@ const estimates = await analysis.getMultipleEstimates(
 ### 6.4 PaymentRanker (Ranking Engine)
 
 ```typescript
-import { PaymentRanker, type PaymentRequirement } from "./payment-ranker.js";
+import { rankPaymentOptions, type PaymentOption } from "./network-ranker.js";
 
-const requirements: PaymentRequirement[] = [
+const options: PaymentOption[] = [
   { network: "base-sepolia", amount: "1000000", asset: "USDC", payTo: "0x..." },
   { network: "stellar-testnet", amount: "1000000", asset: "USDC", payTo: "G..." },
 ];
 
-const ranker = new PaymentRanker({
-  cacheTtlMs: 60_000,
-  sponsoredNetworks: ["stellar-testnet"],
-});
-
 // Rank by lowest cost
-const result = await ranker.rank(requirements, "lowest-cost");
-console.log(result.best.network);   // "stellar-testnet" (sponsored = 0 USDC)
-console.log(result.reason);         // "stellar-testnet is sponsored (0 USDC fee)"
+const result = await rankPaymentOptions(options, "lowest-cost");
+console.log(result.best.network);   // "base-sepolia"
+console.log(result.reason);         // "base-sepolia is 5.0x cheaper (0.000405 vs 0.002025 USDC)"
 
-// Rank by fastest finality
-const fast = await ranker.rank(requirements, "fastest-finality");
-console.log(fast.best.network);     // "base-sepolia" (2s vs 5s)
+// Rank by fastest soft finality
+const softResult = await rankPaymentOptions(options, "fastest-soft-finality");
+console.log(softResult.best.network);  // "base-sepolia" (2.0s vs 5.0s)
+
+// Rank by fastest hard finality
+const hardResult = await rankPaymentOptions(options, "fastest-hard-finality");
+console.log(hardResult.best.network);  // "stellar-testnet" (5.0s vs 17m 10s)
 ```
 
 ---
@@ -246,6 +245,37 @@ console.log(fast.best.network);     // "base-sepolia" (2s vs 5s)
 
 **Missing (optional):**
 - ❌ Unit tests for `NetworkAnalysis` and `PaymentRanker`
+
+---
+
+## 8.1 Phase 2 Status ✅
+
+**Completed:**
+1. ✅ **CLI Demo** (`examples/typescript/economic-load-balancer/cli/`)
+   - Full integration with `NetworkAnalysis` SDK using real-time data
+   - Three ranking criteria: `lowest-cost`, `fastest-soft-finality`, `fastest-hard-finality`
+   - Displays both soft and hard finality for each network
+   - Actual payment execution via x402-axios interceptor
+   - Health checking with automatic unhealthy network filtering
+   - Dry-run mode for testing without executing payments
+
+2. ✅ **Network Analysis Package** (`examples/typescript/economic-load-balancer/network-analysis/`)
+   - Modular package extracted from `scripts/network-selector/`
+   - Real-time gas estimation (no hardcoded values)
+   - Real-time finality measurement from blockchain data
+   - Caching with configurable TTL
+   - Health checking with timeout support
+
+3. ✅ **Documentation Updates**
+   - README.md updated with accurate examples and criteria
+   - All documentation reflects real-time data usage
+   - Clear distinction between soft and hard finality
+
+**Key Improvements Over Phase 1:**
+- ✅ Replaced all hardcoded values with real-time network data
+- ✅ Added support for both soft and hard finality as separate criteria
+- ✅ Modularized network analysis into reusable package
+- ✅ Enhanced CLI with comprehensive network analysis display
 
 ---
 
@@ -281,3 +311,57 @@ pnpm stellar testnet              # Stellar fee estimation
 ```
 
 **Supported Networks:** base, base-sepolia, stellar-testnet, stellar-mainnet
+
+---
+
+## 10. Economic Load Balancer Demos
+
+The demos are located in `examples/typescript/economic-load-balancer/`:
+
+### 10.1 Multi-Network Server
+
+```bash
+cd examples/typescript/economic-load-balancer/server
+cp .env-local .env
+pnpm install && pnpm dev
+```
+
+Serves `/premium/agent-insight` accepting both Base Sepolia and Stellar Testnet payments.
+
+### 10.2 CLI Demo
+
+```bash
+cd examples/typescript/economic-load-balancer/cli
+cp .env-local .env
+pnpm install
+
+# Choose by lowest cost (default)
+pnpm cli
+
+# Choose by different criteria
+pnpm cli --criteria=lowest-cost             # Cheapest network
+pnpm cli --criteria=fastest-soft-finality  # Fastest soft finality
+pnpm cli --criteria=fastest-hard-finality  # Fastest hard finality
+pnpm cli --dry-run                          # Show payment instructions without executing
+```
+
+**Key Features:**
+- ✅ Real-time cost estimation (no hardcoded values)
+- ✅ Real-time finality measurement from blockchain data
+- ✅ Health checking (unhealthy networks are skipped)
+- ✅ Three ranking criteria: lowest-cost, fastest-soft-finality, fastest-hard-finality
+- ✅ Displays both soft and hard finality for each network
+- ✅ Actual payment execution via x402-axios interceptor
+
+### 10.3 React Dashboard
+
+```bash
+cd examples/typescript/economic-load-balancer/dashboard
+pnpm install && pnpm dev
+```
+
+Open http://localhost:5173 to see:
+- Live gas feeds for both networks
+- Progress bars showing relative costs
+- Criteria selector (Lowest Cost / Fastest Finality)
+- Winner highlighted in green with decision log
