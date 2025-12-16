@@ -1,13 +1,14 @@
 #!/usr/bin/env npx tsx
 /**
  * Multi-Network Resource Server for x402 Economic Load Balancer Demo
- * 
+ *
  * This server demonstrates x402 payment middleware with support for multiple networks,
  * including response buffering to ensure resources are only released after on-chain settlement.
  */
 
 import { config } from "dotenv";
 import express, { Request, Response, NextFunction } from "express";
+import { ServerResponse } from "http";
 import cors from "cors";
 import { getAddress } from "viem";
 import { exact } from "x402/schemes";
@@ -28,6 +29,10 @@ import {
   PaymentMiddlewareConfig,
 } from "x402/types";
 import { useFacilitator } from "x402/verify";
+import {
+  getNetworkAnalysis,
+  type SupportedNetwork,
+} from "../network-analysis/index.js";
 
 config();
 
@@ -36,7 +41,8 @@ config();
 // ============================================================================
 
 const PORT = process.env.PORT || 4021;
-const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://x402.org/facilitator";
+const FACILITATOR_URL =
+  process.env.FACILITATOR_URL || "https://x402.org/facilitator";
 const X402_VERSION = 1;
 const DEFAULT_TIMEOUT_SECONDS = 60;
 
@@ -78,13 +84,13 @@ function getResourceUrl(req: Request): string {
  */
 function isFacilitatorError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  
+
   const msg = error.message.toLowerCase();
-  const hasConnectionError = 
+  const hasConnectionError =
     msg.includes("fetch failed") ||
     msg.includes("econnrefused") ||
     msg.includes("could not reach");
-    
+
   if (hasConnectionError) return true;
 
   const hasErrorCode = (e: any): boolean =>
@@ -203,7 +209,9 @@ async function generatePaymentRequirements(
       requirements.push(requirement);
     } catch (error) {
       if (isFacilitatorError(error)) {
-        throw new Error(`Could not reach facilitator at endpoint ${FACILITATOR_URL}`);
+        throw new Error(
+          `Could not reach facilitator at endpoint ${FACILITATOR_URL}`
+        );
       }
       console.warn(
         `Failed to build payment requirement for ${network}:`,
@@ -220,18 +228,18 @@ async function generatePaymentRequirements(
 // ============================================================================
 
 type BufferedCall =
-  | ["writeHead", Parameters<typeof Response.prototype.writeHead>]
-  | ["write", Parameters<typeof Response.prototype.write>]
-  | ["end", Parameters<typeof Response.prototype.end>]
+  | ["writeHead", Parameters<ServerResponse["writeHead"]>]
+  | ["write", Parameters<ServerResponse["write"]>]
+  | ["end", Parameters<ServerResponse["end"]>]
   | ["flushHeaders", []];
 
 interface ResponseBuffer {
   calls: BufferedCall[];
   isSettled: boolean;
   originals: {
-    writeHead: typeof Response.prototype.writeHead;
-    write: typeof Response.prototype.write;
-    end: typeof Response.prototype.end;
+    writeHead: ServerResponse["writeHead"];
+    write: ServerResponse["write"];
+    end: ServerResponse["end"];
     flushHeaders: () => void;
   };
   endPromise: Promise<void>;
@@ -246,7 +254,7 @@ function createResponseBuffer(res: Response): ResponseBuffer {
   const calls: BufferedCall[] = [];
   let isSettled = false;
   let endResolve: () => void;
-  
+
   const endPromise = new Promise<void>((resolve) => {
     endResolve = resolve;
   });
@@ -265,7 +273,9 @@ function createResponseBuffer(res: Response): ResponseBuffer {
  * Installs buffering interceptors on the response object
  */
 function installBuffering(res: Response, buffer: ResponseBuffer): void {
-  res.writeHead = function (...args: Parameters<typeof buffer.originals.writeHead>) {
+  res.writeHead = function (
+    ...args: Parameters<typeof buffer.originals.writeHead>
+  ) {
     if (!buffer.isSettled) {
       buffer.calls.push(["writeHead", args as any]);
       return res;
@@ -337,9 +347,17 @@ function multiNetworkPaymentMiddleware(
     // Helper to get payment requirements with error handling
     const getRequirements = async (): Promise<PaymentRequirements[]> => {
       try {
-        return await generatePaymentRequirements(priceUsd, resourceUrl, method, config);
+        return await generatePaymentRequirements(
+          priceUsd,
+          resourceUrl,
+          method,
+          config
+        );
       } catch (error) {
-        if (error instanceof Error && error.message.includes("Could not reach facilitator")) {
+        if (
+          error instanceof Error &&
+          error.message.includes("Could not reach facilitator")
+        ) {
           res.status(500).json({ error: error.message });
           throw error;
         }
@@ -348,7 +366,10 @@ function multiNetworkPaymentMiddleware(
     };
 
     // Helper to send 402 Payment Required response
-    const send402 = (paymentRequirements: PaymentRequirements[], error?: string) => {
+    const send402 = (
+      paymentRequirements: PaymentRequirements[],
+      error?: string
+    ) => {
       res.status(402).json({
         x402Version: X402_VERSION,
         accepts: toJsonSafe(paymentRequirements),
@@ -370,14 +391,17 @@ function multiNetworkPaymentMiddleware(
     // Decode and validate payment header
     let decodedPayment: PaymentPayload;
     try {
-      const headerValue = Array.isArray(paymentHeader) ? paymentHeader[0] : paymentHeader;
+      const headerValue = Array.isArray(paymentHeader)
+        ? paymentHeader[0]
+        : paymentHeader;
       decodedPayment = exact.evm.decodePayment(headerValue);
       decodedPayment.x402Version = X402_VERSION;
     } catch (error) {
       try {
-        const errorMsg = error instanceof Error 
-          ? error.message 
-          : "Invalid or malformed payment header";
+        const errorMsg =
+          error instanceof Error
+            ? error.message
+            : "Invalid or malformed payment header";
         send402(await getRequirements(), errorMsg);
       } catch {
         // Error already handled in getRequirements
@@ -398,14 +422,20 @@ function multiNetworkPaymentMiddleware(
       paymentRequirements,
       decodedPayment
     );
-    
+
     if (!selectedPaymentRequirements) {
-      return send402(paymentRequirements, "Unable to find matching payment requirements");
+      return send402(
+        paymentRequirements,
+        "Unable to find matching payment requirements"
+      );
     }
 
     // Verify payment signature
     try {
-      const verifyResponse = await verify(decodedPayment, selectedPaymentRequirements);
+      const verifyResponse = await verify(
+        decodedPayment,
+        selectedPaymentRequirements
+      );
       if (!verifyResponse.isValid) {
         return send402(paymentRequirements, verifyResponse.invalidReason);
       }
@@ -422,7 +452,7 @@ function multiNetworkPaymentMiddleware(
 
     // Execute the route handler
     next();
-    
+
     // Wait for handler to complete
     await buffer.endPromise;
 
@@ -435,8 +465,11 @@ function multiNetworkPaymentMiddleware(
 
     // Settle payment on-chain
     try {
-      const settleResponse = await settle(decodedPayment, selectedPaymentRequirements);
-      
+      const settleResponse = await settle(
+        decodedPayment,
+        selectedPaymentRequirements
+      );
+
       if (!settleResponse.success) {
         buffer.calls.length = 0; // Clear buffered response
         return send402(
@@ -484,8 +517,16 @@ app.get(
           confidence: 0.87,
           signals: [
             { indicator: "RSI", value: 65, interpretation: "Neutral-Bullish" },
-            { indicator: "MACD", value: "Positive crossover", interpretation: "Bullish" },
-            { indicator: "Volume", value: "Above average", interpretation: "Strong" },
+            {
+              indicator: "MACD",
+              value: "Positive crossover",
+              interpretation: "Bullish",
+            },
+            {
+              indicator: "Volume",
+              value: "Above average",
+              interpretation: "Strong",
+            },
           ],
         },
         recommendation: "Consider accumulating during dips",
@@ -520,6 +561,145 @@ app.get("/networks", (req, res) =>
     facilitatorUrl: FACILITATOR_URL,
   })
 );
+
+// Network analysis endpoint for dashboard
+app.get("/api/network-estimates", async (req, res) => {
+  const REQUEST_TIMEOUT_MS = 30_000; // 30 seconds timeout
+  const NETWORK_TIMEOUT_MS = 15_000; // 15 seconds per network
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error("Request timeout")), REQUEST_TIMEOUT_MS);
+  });
+
+  try {
+    const analysis = getNetworkAnalysis();
+
+    // Parse networks from query parameters, default to base-sepolia and stellar-testnet
+    const networksParam = req.query.networks;
+    const DEFAULT_NETWORKS: SupportedNetwork[] = [
+      "base-sepolia",
+      "stellar-testnet",
+    ];
+
+    let networks: SupportedNetwork[];
+
+    if (networksParam) {
+      // Handle both single string and array of strings
+      const networkArray = Array.isArray(networksParam)
+        ? networksParam
+        : [networksParam];
+
+      // Validate all networks are supported
+      const invalidNetworks = networkArray.filter(
+        (n) => !analysis.isNetworkSupported(String(n))
+      );
+
+      if (invalidNetworks.length > 0) {
+        res.status(400).json({
+          error: "Invalid network(s) provided",
+          invalidNetworks,
+          supportedNetworks: analysis.getSupportedNetworks(),
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
+      networks = networkArray.map((n) => String(n) as SupportedNetwork);
+    } else {
+      // Default to base-sepolia and stellar-testnet if none provided
+      networks = DEFAULT_NETWORKS;
+    }
+
+    // Fetch estimates for each network individually - NO FALLBACKS, LIVE DATA ONLY
+    const estimatePromise = Promise.allSettled(
+      networks.map(async (network) => {
+        // Add timeout to individual network calls
+        const estimate = await Promise.race([
+          analysis.getNetworkEstimate(network, false, true),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`Timeout for ${network}`)),
+              NETWORK_TIMEOUT_MS
+            )
+          ),
+        ]);
+
+        return {
+          network,
+          feeUsdc: parseFloat(estimate.cost.feeUsdc),
+          feeNative: estimate.cost.feeNative,
+          nativeSymbol: estimate.cost.nativeSymbol,
+          softFinalityMs: estimate.finality.softFinalityMs,
+          hardFinalityMs: estimate.finality.hardFinalityMs,
+          isHealthy: estimate.health
+            ? estimate.health.status !== "unhealthy"
+            : true,
+          latencyMs: estimate.health?.latencyMs ?? 0,
+        };
+      })
+    );
+
+    const results = (await Promise.race([
+      estimatePromise,
+      timeoutPromise,
+    ])) as PromiseSettledResult<{
+      network: SupportedNetwork;
+      feeUsdc: number;
+      feeNative: string;
+      nativeSymbol: string;
+      softFinalityMs: number;
+      hardFinalityMs: number;
+      isHealthy: boolean;
+      latencyMs: number;
+    }>[];
+
+    // Extract only successful estimates - NO FALLBACKS
+    const successfulEstimates = results
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => {
+        if (result.status === "fulfilled") {
+          return result.value;
+        }
+        return null;
+      })
+      .filter((e): e is NonNullable<typeof e> => e !== null);
+
+    // Log failures for debugging
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(
+          `Failed to fetch estimate for ${networks[index]}:`,
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+        );
+      }
+    });
+
+    // If no estimates were successful, return error
+    if (successfulEstimates.length === 0) {
+      res.status(503).json({
+        error: "All network estimates failed",
+        message: "Unable to fetch live data from any network",
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    res.json({ estimates: successfulEstimates, timestamp: Date.now() });
+  } catch (error) {
+    console.error(
+      "Error in network-estimates endpoint:",
+      error instanceof Error ? error.message : String(error)
+    );
+    // NO FALLBACKS - return error response
+    res.status(500).json({
+      error: "Failed to fetch network estimates",
+      message: error instanceof Error ? error.message : "Unknown error",
+      timestamp: Date.now(),
+    });
+  }
+});
 
 // ============================================================================
 // Server Startup

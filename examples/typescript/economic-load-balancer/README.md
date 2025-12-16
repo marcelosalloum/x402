@@ -34,9 +34,10 @@ pnpm dev
 
 **Endpoints:**
 - `GET /health` - Health check
-- `GET /networks` - List supported networks
+- `GET /networks` - List supported networks and payment addresses
 - `GET /premium/agent-insight` - Premium content ($0.001 USDC)
 - `GET /weather` - Weather data ($0.0001 USDC)
+- `GET /api/network-estimates` - Real-time network estimates for dashboard (returns cost, finality, health)
 
 ### 2. CLI Demo (`/cli`)
 
@@ -53,6 +54,7 @@ pnpm cli                                    # Default: lowest-cost
 pnpm cli --criteria=lowest-cost             # Choose cheapest network
 pnpm cli --criteria=fastest-soft-finality   # Choose fastest soft finality
 pnpm cli --criteria=fastest-hard-finality   # Choose fastest hard finality
+pnpm cli --dry-run                          # Show payment instructions without executing
 ```
 
 **Example Output:**
@@ -94,7 +96,7 @@ pnpm cli --criteria=fastest-hard-finality   # Choose fastest hard finality
 
 ### 3. Dashboard (`/dashboard`)
 
-React web application visualizing the load balancer decision process.
+React web application visualizing the load balancer decision process with real-time network data.
 
 ```bash
 cd dashboard
@@ -104,7 +106,10 @@ pnpm dev
 
 Open http://localhost:5173 in your browser.
 
+**Note:** The dashboard requires the server to be running (on port 4021) to fetch real-time network estimates via the `/api/network-estimates` endpoint.
+
 **Features:**
+- **Real-time network data** from `network-analysis` package (no hardcoded values)
 - Live gas feed for both networks (updates every 5s)
 - Progress bars showing relative costs
 - Three criteria buttons:
@@ -113,9 +118,12 @@ Open http://localhost:5173 in your browser.
   - 🔒 **Hard Finality** - Fastest irreversible finality
 - Rankings displayed as 1st, 2nd, etc.
 - Trophy emoji (🏆) highlights the winning network
-- **Caching**: Results cached for 60s with cache hit indicator in log
+- **Caching**: Results cached for 60s with cache hit indicator in log (uses NetworkAnalysis cache)
 - Decision log with clear "X times faster/cheaper" comparisons
-- Demo mode indicator (no actual payments in demo)
+- **⚠️ Demo Mode**: Currently shows analysis but does NOT execute actual payments (Phase 3 incomplete)
+- Displays both soft and hard finality for each network
+
+**Note:** The dashboard is currently in demo mode. To execute actual payments, use the CLI demo which has full payment integration.
 
 ## Quick Start
 
@@ -159,16 +167,26 @@ Open http://localhost:5173 in your browser.
 
 ## Demo Mode
 
-The dashboard runs in demo mode and does not execute actual payments. When clicking "Buy Now":
+**⚠️ Phase 3 Incomplete:** The dashboard currently runs in demo mode and does NOT execute actual payments. When clicking "Buy Now":
 - Networks are analyzed and ranked
 - The decision log shows which network would be selected
-- A warning indicates no actual transaction is created
+- A warning message appears: `⚠️ Demo mode: No actual payment. Would pay on [network].`
 
-To execute real payments, configure private keys in the CLI and use the CLI demo.
+**To execute real payments:**
+- Use the CLI demo which has full payment integration with x402-axios
+- Configure private keys in the CLI `.env` file
+- The CLI executes actual transactions on the selected network
+
+**To complete Phase 3:**
+The dashboard needs to be enhanced with:
+- Wallet connection (EVM + Stellar)
+- x402-axios payment interceptor integration
+- Actual payment execution when "Buy Now" is clicked
+- Payment status and transaction hash display
 
 ## Integration with Network Analysis SDK
 
-The CLI uses the `NetworkAnalysis` SDK from the local `network-analysis/` package, which provides real-time cost and finality estimation:
+Both the CLI and Dashboard use the `NetworkAnalysis` SDK from the local `network-analysis/` package, which provides real-time cost and finality estimation:
 
 ```typescript
 import { rankPaymentOptions } from "./network-ranker.js";
@@ -185,10 +203,12 @@ const softResult = await rankPaymentOptions(options, "fastest-soft-finality");
 const hardResult = await rankPaymentOptions(options, "fastest-hard-finality");
 ```
 
-The `network-analysis/` package uses real-time data from:
-- **EVM networks**: Live gas prices via viem, actual transaction simulation
+The `network-analysis/` package uses **ONLY real-time data** (no hardcoded fallbacks):
+- **EVM networks**: Live gas prices via viem, actual transaction simulation (EIP-3009 transferWithAuthorization)
 - **Stellar networks**: Live fee stats via Soroban RPC, transaction simulation
 - **Finality**: Measured from recent blockchain data (blocks/ledgers)
+- **Prices**: Live cryptocurrency prices from Coinbase API
+- **Error handling**: Throws errors if live data cannot be fetched (no fallbacks)
 
 ## Environment Variables
 

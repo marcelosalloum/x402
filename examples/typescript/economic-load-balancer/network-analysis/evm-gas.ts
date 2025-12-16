@@ -291,12 +291,15 @@ export async function getEvmFeeCost(
     );
   }
 
+  // Always fetch live price - NO FALLBACKS
+  const nativeUsdPrice = await getCryptoPrice(config.nativeSymbol);
+
   if (isSponsored) {
     return {
       network,
       chainId: config.chain.id,
       nativeSymbol: config.nativeSymbol,
-      nativeUsdPrice: config.nativeUsdPrice,
+      nativeUsdPrice,
       gasPriceGwei: "0",
       gasPriceWei: 0n,
       estimatedGasUnits: 0n,
@@ -315,9 +318,6 @@ export async function getEvmFeeCost(
     chain: config.chain,
     transport: http(config.rpcUrl ?? config.chain.rpcUrls.default.http[0]),
   });
-
-  const livePrice = await getCryptoPrice(config.nativeSymbol);
-  const nativeUsdPrice = livePrice > 0 ? livePrice : config.nativeUsdPrice;
 
   const { gasUsed, isSimulated } = await simulateTransferWithAuthorization(
     client,

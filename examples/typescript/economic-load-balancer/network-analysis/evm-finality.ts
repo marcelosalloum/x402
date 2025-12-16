@@ -84,30 +84,28 @@ async function measureHardFinality(
     };
   }
 
-  try {
-    const client = createPublicClient({
-      chain: config.chain,
-      transport: http(config.rpcUrl),
-    });
+  const client = createPublicClient({
+    chain: config.chain,
+    transport: http(config.rpcUrl),
+  });
 
-    const [latestBlock, finalizedBlock] = await Promise.all([
-      client.getBlock({ blockTag: "latest" }),
-      client.getBlock({ blockTag: "finalized" }),
-    ]);
+  const [latestBlock, finalizedBlock] = await Promise.all([
+    client.getBlock({ blockTag: "latest" }),
+    client.getBlock({ blockTag: "finalized" }),
+  ]);
 
-    const diff = Number(latestBlock.timestamp - finalizedBlock.timestamp);
+  const diff = Number(latestBlock.timestamp - finalizedBlock.timestamp);
 
-    return {
-      seconds: diff,
-      source: `Measured live from 'finalized' block lag (Block #${finalizedBlock.number} vs #${latestBlock.number})`,
-    };
-  } catch (error) {
-    const fallbackTime = 900;
-    return {
-      seconds: fallbackTime,
-      source: `Fallback: ~15m typical (RPC failed to fetch finalized block)`,
-    };
+  if (diff < 0) {
+    throw new Error(
+      `Invalid finalized block lag: finalized block is newer than latest block`
+    );
   }
+
+  return {
+    seconds: diff,
+    source: `Measured live from 'finalized' block lag (Block #${finalizedBlock.number} vs #${latestBlock.number})`,
+  };
 }
 
 export async function getEvmFinality(
@@ -144,4 +142,3 @@ export async function getEvmFinality(
     hardFinalitySource: hard.source,
   };
 }
-

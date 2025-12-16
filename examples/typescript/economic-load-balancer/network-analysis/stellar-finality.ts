@@ -58,49 +58,57 @@ interface HorizonResponse {
 async function measureLedgerCloseTime(
   config: NetworkConfig
 ): Promise<{ seconds: number; source: string }> {
-  try {
-    const response = await fetch(
-      `${config.horizonUrl}/ledgers?order=desc&limit=10`
+  const response = await fetch(
+    `${config.horizonUrl}/ledgers?order=desc&limit=10`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Horizon API returned ${response.status}: ${response.statusText}`
     );
-
-    if (!response.ok) {
-      throw new Error(`Horizon API returned ${response.status}`);
-    }
-
-    const data: HorizonResponse = await response.json();
-    const ledgers = data._embedded.records;
-
-    if (ledgers.length < 2) {
-      throw new Error("Insufficient ledger data");
-    }
-
-    const closeTimes: number[] = [];
-    for (let i = 0; i < ledgers.length - 1; i++) {
-      const currentTime = new Date(ledgers[i].closed_at).getTime();
-      const nextTime = new Date(ledgers[i + 1].closed_at).getTime();
-      const diffSeconds = (currentTime - nextTime) / 1000;
-      closeTimes.push(diffSeconds);
-    }
-
-    const averageCloseTime =
-      closeTimes.reduce((sum, time) => sum + time, 0) / closeTimes.length;
-
-    return {
-      seconds: averageCloseTime,
-      source: `Measured from last ${
-        ledgers.length
-      } ledgers (avg: ${averageCloseTime.toFixed(2)}s, range: ${Math.min(
-        ...closeTimes
-      ).toFixed(1)}s-${Math.max(...closeTimes).toFixed(1)}s)`,
-    };
-  } catch (error) {
-    return {
-      seconds: 5,
-      source: `Fallback: Stellar protocol target is 5s per ledger (Horizon query failed: ${
-        error instanceof Error ? error.message : "unknown"
-      })`,
-    };
   }
+
+  const data: HorizonResponse = await response.json();
+  const ledgers = data._embedded.records;
+
+  if (ledgers.length < 2) {
+    throw new Error(
+      `Insufficient ledger data: received ${ledgers.length} ledgers, need at least 2`
+    );
+  }
+
+  const closeTimes: number[] = [];
+  for (let i = 0; i < ledgers.length - 1; i++) {
+    const currentTime = new Date(ledgers[i].closed_at).getTime();
+    const nextTime = new Date(ledgers[i + 1].closed_at).getTime();
+    const diffSeconds = (currentTime - nextTime) / 1000;
+
+    if (diffSeconds <= 0 || diffSeconds > 60) {
+      throw new Error(
+        `Invalid ledger close time difference: ${diffSeconds}s (expected 0-60s)`
+      );
+    }
+
+    closeTimes.push(diffSeconds);
+  }
+
+  const averageCloseTime =
+    closeTimes.reduce((sum, time) => sum + time, 0) / closeTimes.length;
+
+  if (averageCloseTime <= 0 || averageCloseTime > 60) {
+    throw new Error(
+      `Invalid average ledger close time: ${averageCloseTime}s (expected 0-60s)`
+    );
+  }
+
+  return {
+    seconds: averageCloseTime,
+    source: `Measured from last ${
+      ledgers.length
+    } ledgers (avg: ${averageCloseTime.toFixed(2)}s, range: ${Math.min(
+      ...closeTimes
+    ).toFixed(1)}s-${Math.max(...closeTimes).toFixed(1)}s)`,
+  };
 }
 
 export async function getStellarFinality(
@@ -131,4 +139,3 @@ export async function getStellarFinality(
     hardFinalitySource: "Same as soft (SCP provides immediate finality)",
   };
 }
-

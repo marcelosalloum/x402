@@ -69,8 +69,7 @@ export async function getStellarFeeCost(
 ): Promise<StellarCostEstimate> {
   const config = networkConfigs[network];
 
-  const livePrice = await getCryptoPrice("XLM");
-  const xlmUsdPrice = livePrice > 0 ? livePrice : 0.25;
+  const xlmUsdPrice = await getCryptoPrice("XLM");
 
   const tokenContract = tokenContractOverride ?? config.nativeXlmTokenContract;
   const tokenLabel = tokenContractOverride ? "custom-token" : "native-xlm";
@@ -92,52 +91,45 @@ export async function getStellarFeeCost(
   const rpcUrl = customRpcUrl ?? config.rpcUrl;
   const server = new rpc.Server(rpcUrl);
 
-  let simulatedFee = 0;
-  let isSimulated = false;
+  const sourceKeypair = Keypair.fromSecret(config.testWallet.secret);
+  const destinationPublic = testWallets.destination.public;
 
-  try {
-    const sourceKeypair = Keypair.fromSecret(config.testWallet.secret);
-    const destinationPublic = testWallets.destination.public;
+  const sourceAccount = await server.getAccount(sourceKeypair.publicKey());
 
-    const sourceAccount = await server.getAccount(sourceKeypair.publicKey());
+  const contract = new Contract(tokenContract);
+  const transferOp = contract.call(
+    "transfer",
+    nativeToScVal(sourceKeypair.publicKey(), { type: "address" }),
+    nativeToScVal(destinationPublic, { type: "address" }),
+    nativeToScVal("1000000", { type: "i128" })
+  );
 
-    const contract = new Contract(tokenContract);
-    const transferOp = contract.call(
-      "transfer",
-      nativeToScVal(sourceKeypair.publicKey(), { type: "address" }),
-      nativeToScVal(destinationPublic, { type: "address" }),
-      nativeToScVal("1000000", { type: "i128" })
+  const transaction = new TransactionBuilder(sourceAccount, {
+    fee: "100",
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(transferOp)
+    .setTimeout(30)
+    .build();
+
+  const simulation = await server.simulateTransaction(transaction);
+
+  if (!rpc.Api.isSimulationSuccess(simulation)) {
+    throw new Error(
+      `Transaction simulation failed: ${JSON.stringify(simulation)}`
     );
+  }
 
-    const transaction = new TransactionBuilder(sourceAccount, {
-      fee: "100",
-      networkPassphrase: config.networkPassphrase,
-    })
-      .addOperation(transferOp)
-      .setTimeout(30)
-      .build();
+  const resourceFee = Number(simulation.minResourceFee);
+  const feeStats = await server.getFeeStats();
+  const inclusionFee = Number(
+    feeStats.sorobanInclusionFee.p95 || feeStats.sorobanInclusionFee.max
+  );
 
-    const simulation = await server.simulateTransaction(transaction);
+  const simulatedFee = resourceFee + inclusionFee;
 
-    if (rpc.Api.isSimulationSuccess(simulation)) {
-      const resourceFee = Number(simulation.minResourceFee);
-      const feeStats = await server.getFeeStats();
-      const inclusionFee = Number(
-        feeStats.sorobanInclusionFee.p95 || feeStats.sorobanInclusionFee.max
-      );
-
-      simulatedFee = resourceFee + inclusionFee;
-      isSimulated = true;
-    } else {
-      console.warn("❌ Simulation failed - using fallback fee");
-      simulatedFee = 70000;
-    }
-  } catch (error) {
-    console.error(
-      "❌ Simulation crashed:",
-      error instanceof Error ? error.message : error
-    );
-    simulatedFee = 92000;
+  if (simulatedFee <= 0) {
+    throw new Error(`Invalid simulated fee: ${simulatedFee} stroops`);
   }
 
   const feeXlm = simulatedFee / STROOPS_PER_XLM;
@@ -151,7 +143,6 @@ export async function getStellarFeeCost(
     simulatedFeeXlm: feeXlm.toFixed(7),
     simulatedFeeUsdc: (feeXlm * xlmUsdPrice).toFixed(6),
     isSponsored: false,
-    isSimulated,
+    isSimulated: true,
   };
 }
-
