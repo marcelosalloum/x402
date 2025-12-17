@@ -209,13 +209,18 @@ async function generatePaymentRequirements(
       requirements.push(requirement);
     } catch (error) {
       if (isFacilitatorError(error)) {
+        console.error(
+          `  ❌ Facilitator error for ${network}:`,
+          getErrorMessage(error)
+        );
         throw new Error(
           `Could not reach facilitator at endpoint ${FACILITATOR_URL}`
         );
       }
-      console.warn(
-        `Failed to build payment requirement for ${network}:`,
-        getErrorMessage(error)
+      console.error(
+        `  ❌ Failed to build payment requirement for ${network}:`,
+        getErrorMessage(error),
+        error
       );
     }
   }

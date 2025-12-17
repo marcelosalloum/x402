@@ -195,6 +195,18 @@ body {
   font-size: 1.1rem;
 }
 
+/* Network Placeholder */
+.network-placeholder {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.network-placeholder p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
 /* Progress Bar */
 .progress-container {
   margin-top: 1rem;
@@ -356,6 +368,17 @@ body {
   color: var(--accent-yellow);
 }
 
+.log-message a {
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.log-message a:hover {
+  opacity: 1;
+}
+
 /* Live indicator */
 .live-indicator {
   display: flex;
@@ -378,6 +401,280 @@ body {
   50% { opacity: 0.5; }
 }
 
+/* Payment Modal */
+.payment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.payment-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.payment-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.payment-modal-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.payment-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.payment-modal-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.payment-modal-content {
+  padding: 1.5rem;
+}
+
+.payment-info {
+  margin-bottom: 1.5rem;
+}
+
+.payment-info p {
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.payment-info strong {
+  color: var(--text-primary);
+  margin-right: 0.5rem;
+}
+
+.payment-connect,
+.payment-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.payment-connect {
+  justify-content: center;
+}
+
+/* Wallet Selection */
+.wallet-selection {
+  margin-bottom: 1rem;
+}
+
+.wallet-selection-title {
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.wallet-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.wallet-card {
+  background: var(--bg-card-hover);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-sans);
+}
+
+.wallet-card:hover:not(:disabled) {
+  border-color: var(--accent-blue);
+  background: var(--bg-card);
+  transform: translateY(-2px);
+}
+
+.wallet-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wallet-card-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.wallet-card-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.wallet-connecting {
+  text-align: center;
+  color: var(--accent-blue);
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Style OnchainKit ConnectWallet button */
+.payment-connect button,
+.payment-connect [role="button"] {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.payment-actions {
+  justify-content: flex-end;
+}
+
+.button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+}
+
+.button-primary {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  color: #fff;
+}
+
+.button-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-secondary {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: var(--border-color);
+}
+
+.payment-status {
+  padding: 0.75rem;
+  background: var(--bg-card-hover);
+  border-radius: 8px;
+  color: var(--accent-blue);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.payment-error {
+  padding: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.payment-success {
+  padding: 0.75rem;
+  background: var(--first-bg);
+  border: 1px solid var(--first-border);
+  border-radius: 8px;
+  color: var(--first-color);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Protected Resource */
+.protected-resource {
+  background: var(--bg-card);
+  border: 1px solid var(--first-border);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.protected-resource-header {
+  margin-bottom: 1.5rem;
+}
+
+.protected-resource-header h2 {
+  font-size: 1.5rem;
+  color: var(--first-color);
+  margin-bottom: 0.5rem;
+}
+
+.protected-resource-header p {
+  color: var(--text-secondary);
+}
+
+.protected-resource-content {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.protected-resource-content pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .networks-grid {
@@ -394,6 +691,19 @@ body {
   }
 
   .criteria-btn {
+    width: 100%;
+  }
+
+  .payment-modal {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .payment-actions {
+    flex-direction: column;
+  }
+
+  .button {
     width: 100%;
   }
 }

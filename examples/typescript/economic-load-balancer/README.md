@@ -110,20 +110,22 @@ Open http://localhost:5173 in your browser.
 
 **Features:**
 - **Real-time network data** from `network-analysis` package (no hardcoded values)
-- Live gas feed for both networks (updates every 5s)
-- Progress bars showing relative costs
+- Live gas feed for both networks (fetched when criteria is selected)
+- Progress bars showing relative metrics based on selected criteria (cost, soft finality, or hard finality)
 - Three criteria buttons:
   - 💰 **Lowest Cost** - Select cheapest network
   - ⚡ **Soft Finality** - Fastest initial confirmation
   - 🔒 **Hard Finality** - Fastest irreversible finality
 - Rankings displayed as 1st, 2nd, etc.
 - Trophy emoji (🏆) highlights the winning network
-- **Caching**: Results cached for 60s with cache hit indicator in log (uses NetworkAnalysis cache)
+- **Caching**: Results cached for 60s with cache hit indicator in log
 - Decision log with clear "X times faster/cheaper" comparisons
-- **⚠️ Demo Mode**: Currently shows analysis but does NOT execute actual payments (Phase 3 incomplete)
+- **✅ Full Payment Integration**: Wallet connection and actual payment execution
+  - EVM: MetaMask, Coinbase Wallet, WalletConnect support
+  - Stellar: Stellar Wallets Kit integration
+- Payment status tracking with explorer links
+- Protected resource display after successful payment
 - Displays both soft and hard finality for each network
-
-**Note:** The dashboard is currently in demo mode. To execute actual payments, use the CLI demo which has full payment integration.
 
 ## Quick Start
 
@@ -154,10 +156,13 @@ Open http://localhost:5173 in your browser.
 ## How It Works
 
 1. **Server returns 402** with payment options for both networks
-2. **PaymentRanker analyzes** each network's cost and finality
-3. **Best network is selected** based on the chosen criteria
+2. **PaymentRanker analyzes** each network's cost and finality in real-time
+3. **Best network is selected** based on the chosen criteria (lowest-cost, soft-finality, or hard-finality)
 4. **Rankings displayed** as 1st, 2nd, etc. with clear comparison
-5. In production, **payment would be executed** on the winning network
+5. **Wallet connection** is initiated for the selected network (EVM or Stellar)
+6. **Payment is executed** on the winning network with transaction signing
+7. **Protected resource** is displayed after successful payment
+8. **Transaction details** are logged with explorer links for verification
 
 ## Criteria Explained
 
@@ -165,24 +170,31 @@ Open http://localhost:5173 in your browser.
 - **Soft Finality**: Ranks by time to first confirmation (sequencer confirmation for L2, ledger close for Stellar)
 - **Hard Finality**: Ranks by time to irreversible finality (L1 settlement for L2 ~15min, immediate for Stellar ~5s)
 
-## Demo Mode
+## Payment Flow
 
-**⚠️ Phase 3 Incomplete:** The dashboard currently runs in demo mode and does NOT execute actual payments. When clicking "Buy Now":
-- Networks are analyzed and ranked
-- The decision log shows which network would be selected
-- A warning message appears: `⚠️ Demo mode: No actual payment. Would pay on [network].`
+**✅ Phase 3 Complete:** The dashboard now executes actual payments with full wallet integration.
 
-**To execute real payments:**
-- Use the CLI demo which has full payment integration with x402-axios
-- Configure private keys in the CLI `.env` file
-- The CLI executes actual transactions on the selected network
+**Payment Process:**
+1. User selects a ranking criteria (Lowest Cost, Soft Finality, or Hard Finality)
+2. User clicks "Buy Now"
+3. Dashboard fetches payment requirements from the server
+4. Networks are analyzed and ranked based on the selected criteria
+5. Best network is automatically selected
+6. Payment modal opens with wallet connection options:
+   - **EVM networks**: Connect via MetaMask, Coinbase Wallet, or WalletConnect
+   - **Stellar networks**: Connect via Stellar Wallets Kit (Freighter, etc.)
+7. User connects wallet and approves payment
+8. Payment is executed on the selected network
+9. Protected resource is displayed after successful payment
+10. Transaction details and explorer links are shown in the decision log
 
-**To complete Phase 3:**
-The dashboard needs to be enhanced with:
-- Wallet connection (EVM + Stellar)
-- x402-axios payment interceptor integration
-- Actual payment execution when "Buy Now" is clicked
-- Payment status and transaction hash display
+**Payment Features:**
+- Automatic network switching (EVM)
+- Balance checking before payment
+- Payment retry logic with version handling
+- Comprehensive error handling
+- Explorer links for transaction verification
+- Real-time payment status updates
 
 ## Integration with Network Analysis SDK
 
@@ -235,3 +247,7 @@ This demo is part of the x402 Hackathon submission for the **Economic Load Balan
 - ✅ Multi-network payment support
 - ✅ Three ranking criteria (cost, soft finality, hard finality)
 - ✅ Beautiful visualization dashboard with clear rankings
+- ✅ Full wallet integration (EVM + Stellar)
+- ✅ Actual payment execution with transaction tracking
+- ✅ Protected resource display after payment
+- ✅ Comprehensive error handling and user feedback
