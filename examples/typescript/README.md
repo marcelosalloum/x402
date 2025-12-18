@@ -2,6 +2,39 @@
 
 This directory contains a collection of TypeScript examples demonstrating how to use the X402 protocol in various contexts. These examples are designed to work with the X402 npm packages and share a workspace with the main X402 packages.
 
+## TLDR: Quick Start
+
+**0. Build the packages:**
+```bash
+cd typescript/packages/x402
+pnpm build:paywall && cd .. && pnpm build && cd x402
+```
+
+**1. Start the facilitator:**
+```bash
+cd examples/typescript/facilitator
+pnpm install
+pnpm dev
+```
+
+**2. Start the server:**
+```bash
+cd examples/typescript/economic-load-balancer/server
+pnpm dev
+```
+
+**3. Run the CLI:**
+```bash
+cd examples/typescript/economic-load-balancer/cli
+pnpm cli
+```
+
+**4. Start the dashboard:**
+```bash
+cd examples/typescript/economic-load-balancer/dashboard
+pnpm dev
+```
+
 ## Setup
 
 Before running any examples, you need to install dependencies and build the packages:
