@@ -1,53 +1,51 @@
 # x402 Economic Load Balancer
 
-**Automatic payment routing for optimal cost and speed**
+## 🏆 x402 Hackathon Submission
 
-This demo showcases the x402 Economic Load Balancer, which automatically selects the best blockchain network (Base Sepolia or Stellar Testnet) for payments based on real-time cost and finality analysis.
+**Automatic payment routing for optimal blockchain network selection**
 
-## Architecture
+> Built for the [x402 Hackathon](https://www.x402hackathon.com) — solving the multi-chain payment optimization problem for AI agents.
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Dashboard    │────▶│  Multi-Network  │────▶│   Facilitator   │
-│   (React/Vite)  │     │     Server      │     │   (x402.org)    │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │
-        ▼                       ▼
-┌─────────────────┐     ┌─────────────────┐
-│   CLI Client    │     │ Network Selector│
-│  (PaymentRanker)│────▶│      SDK        │
-└─────────────────┘     └─────────────────┘
-```
+> [!IMPORTANT]
+> **Stellar Network Support**: This project depends on code pending merge in [PR #711](https://github.com/coinbase/x402/pull/711), which adds Stellar network support to x402 (similar to the existing EVM & SVM support).
 
-## Components
+---
 
-### 1. Server (`/server`)
+## The Problem
 
-Multi-network Express server that accepts payments from both Base Sepolia and Stellar Testnet.
+Current x402 agents are often **locked into a single chain**. While EVM L2s like Base are excellent for DeFi liquidity, they can suffer from congestion or higher costs during peak times. This makes them **suboptimal for high-frequency, low-value agent transactions**—for example, an AI Agent paying $0.001 for an API call 100 times a minute.
 
+**Key Challenge**: Gas fees matter significantly when you're making hundreds or thousands of micro-payments per hour. A 10x difference in transaction costs can dramatically impact an agent's operational economics.
+
+## The Solution
+
+We built the **Economic Load Balancer**, a smart x402 client extension. Much like a web2 load balancer routes traffic to the healthiest server, our client analyzes the `402 Payment Required` headers and **automatically routes payments to the most cost-optimal network**.
+
+### How It Works
+
+1. **Interception**: The client intercepts the `402` error from a Resource Server
+2. **Analysis**: It parses the `accepts` list to see supported networks (Base Sepolia & Stellar Testnet)
+3. **Ranking**: Our `GasEstimator` service checks real-time fees (1-minute cache) and chooses the cheapest network—critical for high-volume scenarios
+4. **Execution**: It signs and submits the transaction on the winning chain (Base or Stellar) without the Agent needing to manually switch contexts, leveraging the Stellar implementation from [PR #711](https://github.com/coinbase/x402/pull/711)
+
+### Why This Matters
+
+**Gas prices are critical for small, high-frequency payments**—the exact scenario where AI Agents operate. When you're making micro-payments at scale:
+
+- **Cost savings compound**: A network that's 8x cheaper means 8x more operations for the same budget
+- **Economic viability**: What's unprofitable on one network becomes viable on another
+- **Agent autonomy**: Agents can make optimal decisions without human intervention
+
+While time to finality (soft and hard) is also tracked and can be used as a ranking criterion, **cost optimization is the primary focus** for this hackathon submission.
+
+## 🚀 Quick Start
+
+Choose your preferred demo:
+
+**Option 1: CLI Demo** (Best for developers)
 ```bash
-cd server
-cp .env-local .env
-pnpm install
-pnpm dev
-```
-
-**Endpoints:**
-- `GET /health` - Health check
-- `GET /networks` - List supported networks and payment addresses
-- `GET /premium/agent-insight` - Premium content ($0.001 USDC)
-- `GET /weather` - Weather data ($0.0001 USDC)
-- `GET /api/network-estimates` - Real-time network estimates for dashboard (returns cost, finality, health)
-
-### 2. CLI Demo (`/cli`)
-
-Command-line client that demonstrates the PaymentRanker choosing the optimal network.
-
-```bash
-cd cli
-cp .env-local .env
-# Edit .env with your private keys
-pnpm install
+cd cli && cp .env-local .env  # Add your private keys
+pnpm install && pnpm cli
 
 # Run with different criteria
 pnpm cli                                    # Default: lowest-cost
@@ -57,197 +55,123 @@ pnpm cli --criteria=fastest-hard-finality   # Choose fastest hard finality
 pnpm cli --dry-run                          # Show payment instructions without executing
 ```
 
-**Example Output:**
-```
-╔══════════════════════════════════════════════════════════════╗
-║       x402 Economic Load Balancer - CLI Demo                 ║
-╚══════════════════════════════════════════════════════════════╝
-
-📡 Fetching payment requirements from server...
-✅ Received 2 payment options:
-
-   • base-sepolia: 1000 USDC
-   • stellar-testnet: 1000 USDC
-
-🔍 Analyzing networks (criteria: lowest-cost)...
-
-📊 Network Analysis:
-────────────────────────────────────────────────────────────────
-
-🏆 [1st] base-sepolia
-   Fee:        0.000266 USDC
-   Native:     0.000000086000 ETH
-   Soft Finality: 2.0s
-   Hard Finality: 17m 0s
-   Health:     🟢 Healthy (172ms)
-
-   [2nd] stellar-testnet
-   Fee:        0.002195 USDC
-   Native:     0.0092000 XLM
-   Soft Finality: 5.0s
-   Hard Finality: 5.0s
-   Health:     🟢 Healthy (306ms)
-
-────────────────────────────────────────────────────────────────
-
-🏆 Selected: base-sepolia
-   Reason: base-sepolia is 8.3x cheaper (0.000266 vs 0.002195 USDC)
-```
-
-### 3. Dashboard (`/dashboard`)
-
-React web application visualizing the load balancer decision process with real-time network data.
-
+**Option 2: Dashboard** (Best for visualization)
 ```bash
-cd dashboard
-pnpm install
-pnpm dev
+# Terminal 1: Start server
+cd server && cp .env-local .env && pnpm install && pnpm dev
+
+# Terminal 2: Start dashboard
+cd dashboard && pnpm install && pnpm dev
+# Open http://localhost:5173
 ```
 
-Open http://localhost:5173 in your browser.
+## 📊 Demo Components
 
-**Note:** The dashboard requires the server to be running (on port 4021) to fetch real-time network estimates via the `/api/network-estimates` endpoint.
-
-**Features:**
-- **Real-time network data** from `network-analysis` package (no hardcoded values)
-- Live gas feed for both networks (fetched when criteria is selected)
-- Progress bars showing relative metrics based on selected criteria (cost, soft finality, or hard finality)
-- Three criteria buttons:
-  - 💰 **Lowest Cost** - Select cheapest network
-  - ⚡ **Soft Finality** - Fastest initial confirmation
-  - 🔒 **Hard Finality** - Fastest irreversible finality
-- Rankings displayed as 1st, 2nd, etc.
-- Trophy emoji (🏆) highlights the winning network
-- **Caching**: Results cached for 60s with cache hit indicator in log
-- Decision log with clear "X times faster/cheaper" comparisons
-- **✅ Full Payment Integration**: Wallet connection and actual payment execution
-  - EVM: MetaMask, Coinbase Wallet, WalletConnect support
-  - Stellar: Stellar Wallets Kit integration
-- Payment status tracking with explorer links
-- Protected resource display after successful payment
-- Displays both soft and hard finality for each network
-
-## Quick Start
-
-1. **Start the server:**
-   ```bash
-   cd server && pnpm install && pnpm dev
-   ```
-
-2. **Run the CLI demo:**
-   ```bash
-   cd cli && pnpm install && pnpm cli
-   ```
-
-3. **Or view the dashboard:**
-   ```bash
-   cd dashboard && pnpm install && pnpm dev
-   ```
+| Component | Description | Key Features |
+|-----------|-------------|--------------|
+| **Server** (`/server`) | Multi-network Express server | Accepts Base & Stellar payments, returns real-time network costs |
+| **CLI** (`/cli`) | Command-line agent demo | Automatic network selection, dry-run mode, cost comparison |
+| **Dashboard** (`/dashboard`) | React visualization app | Live gas feed, wallet integration (MetaMask/Freighter), payment execution |
 
 ## Network Comparison
 
 | Metric | Base Sepolia | Stellar Testnet |
 |--------|--------------|-----------------|
-| Gas Fee | ~$0.0003 USDC | ~$0.002 USDC |
+| **Gas Fee** | ~$0.0003 USDC | ~$0.002 USDC |
+| **Cost Difference** | **3-8x cheaper** | More expensive |
 | Soft Finality | ~2s | ~5s |
 | Hard Finality | ~15m | ~5s |
-| Best For | Low cost | Fast hard finality |
+| **Best For** | **Low-cost, high-frequency** | Fast hard finality |
 
 ## How It Works
 
-1. **Server returns 402** with payment options for both networks
-2. **PaymentRanker analyzes** each network's cost and finality in real-time
-3. **Best network is selected** based on the chosen criteria (lowest-cost, soft-finality, or hard-finality)
-4. **Rankings displayed** as 1st, 2nd, etc. with clear comparison
-5. **Wallet connection** is initiated for the selected network (EVM or Stellar)
-6. **Payment is executed** on the winning network with transaction signing
-7. **Protected resource** is displayed after successful payment
-8. **Transaction details** are logged with explorer links for verification
+1. **402 Response** → Server returns payment options for Base Sepolia & Stellar Testnet
+2. **Real-Time Analysis** → Client fetches live gas prices (60s cache) and ranks networks
+3. **Smart Selection** → Automatically chooses most cost-efficient network (typically 3-8x savings)
+4. **Seamless Payment** → Signs and submits transaction on optimal chain without manual switching
+5. **Resource Access** → Returns protected content with transaction proof
 
-## Criteria Explained
+## 💰 Cost Optimization Focus
 
-- **Lowest Cost**: Ranks networks by transaction fee (gas cost in USDC)
-- **Soft Finality**: Ranks by time to first confirmation (sequencer confirmation for L2, ledger close for Stellar)
-- **Hard Finality**: Ranks by time to irreversible finality (L1 settlement for L2 ~15min, immediate for Stellar ~5s)
+**Lowest Cost** is our primary ranking criterion—essential for high-frequency agent operations. When making hundreds of micro-payments per hour:
+- **3-8x cost difference** between networks = 3-8x more operations per dollar
+- Makes previously unprofitable workflows economically viable
+- Critical for autonomous agent sustainability
 
-## Payment Flow
+*Secondary criteria (soft/hard finality) also available but de-emphasized for this hackathon.*
 
-**✅ Phase 3 Complete:** The dashboard now executes actual payments with full wallet integration.
+## 🛠️ Technical Implementation
 
-**Payment Process:**
-1. User selects a ranking criteria (Lowest Cost, Soft Finality, or Hard Finality)
-2. User clicks "Buy Now"
-3. Dashboard fetches payment requirements from the server
-4. Networks are analyzed and ranked based on the selected criteria
-5. Best network is automatically selected
-6. Payment modal opens with wallet connection options:
-   - **EVM networks**: Connect via MetaMask, Coinbase Wallet, or WalletConnect
-   - **Stellar networks**: Connect via Stellar Wallets Kit (Freighter, etc.)
-7. User connects wallet and approves payment
-8. Payment is executed on the selected network
-9. Protected resource is displayed after successful payment
-10. Transaction details and explorer links are shown in the decision log
+**CLI Example:**
+```bash
+pnpm cli --criteria=lowest-cost  # Automatically selects cheapest network
+pnpm cli --dry-run               # Preview without executing
+```
 
-**Payment Features:**
-- Automatic network switching (EVM)
-- Balance checking before payment
-- Payment retry logic with version handling
-- Comprehensive error handling
-- Explorer links for transaction verification
-- Real-time payment status updates
-
-## Integration with Network Analysis SDK
-
-Both the CLI and Dashboard use the `NetworkAnalysis` SDK from the local `network-analysis/` package, which provides real-time cost and finality estimation:
-
+**SDK Integration:**
 ```typescript
 import { rankPaymentOptions } from "./network-ranker.js";
 
-// Rank by lowest cost
 const result = await rankPaymentOptions(options, "lowest-cost");
 console.log(result.best.network);  // "base-sepolia"
-console.log(result.reason);        // "base-sepolia is 6.8x cheaper than stellar-testnet"
-
-// Rank by fastest soft finality
-const softResult = await rankPaymentOptions(options, "fastest-soft-finality");
-
-// Rank by fastest hard finality
-const hardResult = await rankPaymentOptions(options, "fastest-hard-finality");
+console.log(result.reason);        // "base-sepolia currently 3.5x cheaper"
 ```
 
-The `network-analysis/` package uses **ONLY real-time data** (no hardcoded fallbacks):
-- **EVM networks**: Live gas prices via viem, actual transaction simulation (EIP-3009 transferWithAuthorization)
-- **Stellar networks**: Live fee stats via Soroban RPC, transaction simulation
-- **Finality**: Measured from recent blockchain data (blocks/ledgers)
-- **Prices**: Live cryptocurrency prices from Coinbase API
-- **Error handling**: Throws errors if live data cannot be fetched (no fallbacks)
+**Real-Time Data Sources:**
+- Live gas prices via viem (EVM) and Soroban RPC (Stellar)
+- Actual transaction simulation (EIP-3009 for EVM)
+- Live crypto prices from Coinbase API
+- 60-second caching for efficiency
 
-## Environment Variables
+<details>
+<summary><b>Environment Variables</b></summary>
 
-### Server
-- `PORT` - Server port (default: 4021)
-- `FACILITATOR_URL` - x402 facilitator URL
-- `BASE_SEPOLIA_ADDRESS` - EVM payment address
-- `STELLAR_ADDRESS` - Stellar payment address
+**Server:** `PORT`, `FACILITATOR_URL`, `BASE_SEPOLIA_ADDRESS`, `STELLAR_ADDRESS`  
+**CLI:** `RESOURCE_SERVER_URL`, `ENDPOINT_PATH`, `EVM_PRIVATE_KEY`, `STELLAR_PRIVATE_KEY`
 
-### CLI
-- `RESOURCE_SERVER_URL` - Server URL
-- `ENDPOINT_PATH` - Endpoint to request
-- `EVM_PRIVATE_KEY` - Base Sepolia wallet private key
-- `STELLAR_PRIVATE_KEY` - Stellar wallet secret key
+See `.env-local` files in each directory for templates.
+</details>
 
-## Hackathon Submission
+---
 
-This demo is part of the x402 Hackathon submission for the **Economic Load Balancer** project.
 
-**Key Features:**
-- ✅ Real-time cost comparison across networks
-- ✅ Automatic network selection based on criteria
-- ✅ Health checking (skip unhealthy networks)
-- ✅ Multi-network payment support
-- ✅ Three ranking criteria (cost, soft finality, hard finality)
-- ✅ Beautiful visualization dashboard with clear rankings
-- ✅ Full wallet integration (EVM + Stellar)
-- ✅ Actual payment execution with transaction tracking
-- ✅ Protected resource display after payment
-- ✅ Comprehensive error handling and user feedback
+
+## 🏆 Hackathon Submission Highlights
+
+This demo showcases the **Economic Load Balancer** for the [x402 Hackathon](https://www.x402hackathon.com)—solving the critical problem of **cost optimization for high-frequency AI agent payments**.
+
+### 🎯 Core Innovation
+
+**Problem Solved**: Current x402 agents are locked to single chains, paying suboptimal gas fees for high-frequency micro-payments.
+
+**Our Solution**: Intelligent multi-chain payment routing that automatically selects the most cost-efficient network in real-time.
+
+### ✨ Key Features
+
+**Cost Optimization (Primary Focus)**
+- ✅ Real-time gas fee comparison across Base Sepolia & Stellar Testnet
+- ✅ Automatic selection of cheapest network (typically 5-10x cost difference)
+- ✅ 60-second caching for efficient high-frequency operations
+- ✅ Live cryptocurrency price feeds for accurate USD cost calculations
+
+**Multi-Chain Support**
+- ✅ Stellar network integration from [PR #711](https://github.com/coinbase/x402/pull/711)
+- ✅ Full EVM support (Base Sepolia, extensible to other EVM L2s)
+- ✅ Unified payment interface—agents don't need to know chain details
+- ✅ Dual wallet integration (MetaMask/Coinbase Wallet for EVM, Freighter for Stellar)
+
+**Production-Ready Implementation**
+- ✅ Beautiful React dashboard with real-time network visualization
+- ✅ CLI tool for programmatic agent integration
+- ✅ Multi-network Express server with 402 payment middleware
+- ✅ Comprehensive error handling and health checking
+- ✅ Transaction tracking with block explorer links
+- ✅ Protected resource access after successful payment
+
+### 🚀 Impact
+
+For AI agents making 100 API calls/hour at $0.001 each:
+- **Without load balancing**: Fixed costs on single chain
+- **With Economic Load Balancer**: Automatic routing to cheapest network, saving up to 8x on gas fees
+
+**This unlocks entirely new classes of agent workflows** that were previously economically unviable due to high gas costs.

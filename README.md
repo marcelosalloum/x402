@@ -10,6 +10,9 @@ app.use(
 // That's it! See examples/typescript/servers/express/index.ts for a complete example. Instruction below for running on base-sepolia.
 ```
 
+> [!NOTE]
+> **x402 Hackathon Implementation**: Check out the [Economic Load Balancer example](examples/typescript/economic-load-balancer) to see our hackathon submission—an intelligent multi-chain payment router that automatically selects the most cost-efficient network for high-frequency AI agent micro-payments.
+
 ## Philosophy
 
 Payments on the internet are fundamentally flawed. Credit Cards are high friction, hard to accept, have minimum payments that are far too high, and don't fit into the programmatic nature of the internet.
