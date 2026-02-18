@@ -16,6 +16,8 @@ export default [
       "src/evm/dist/**",
       "src/svm/gen/**",
       "src/svm/dist/**",
+      "src/stellar/gen/**",
+      "src/stellar/dist/**",
     ],
   },
   {
