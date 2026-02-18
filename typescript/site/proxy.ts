@@ -2,17 +2,21 @@ import { paymentProxyFromConfig } from "@x402/next";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
+import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import { NextRequest, NextResponse } from "next/server";
 import { createPaywall } from "@x402/paywall";
 import { evmPaywall } from "@x402/paywall/evm";
 import { svmPaywall } from "@x402/paywall/svm";
+import { stellarPaywall } from "@x402/paywall/stellar";
 
 const evmPayeeAddress = process.env.RESOURCE_EVM_ADDRESS as `0x${string}`;
 const svmPayeeAddress = process.env.RESOURCE_SVM_ADDRESS as string;
+const stellarPayeeAddress = process.env.RESOURCE_STELLAR_ADDRESS as string;
 const facilitatorUrl = process.env.FACILITATOR_URL as string;
 
 const EVM_NETWORK = "eip155:84532" as const; // Base Sepolia
 const SVM_NETWORK = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1" as const; // Solana Devnet
+const STELLAR_NETWORK = "stellar:testnet" as const; // Stellar Testnet
 
 // List of blocked countries and regions
 const BLOCKED_COUNTRIES = [
@@ -39,6 +43,7 @@ const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
 const paywall = createPaywall()
   .withNetwork(evmPaywall)
   .withNetwork(svmPaywall)
+  .withNetwork(stellarPaywall)
   .withConfig({
     appName: "x402 Demo",
     appLogo: "/logos/x402-examples.png",
@@ -61,6 +66,12 @@ const x402PaymentProxy = paymentProxyFromConfig(
           price: "$0.01",
           network: SVM_NETWORK,
         },
+        {
+          payTo: stellarPayeeAddress,
+          scheme: "exact",
+          price: "$0.01",
+          network: STELLAR_NETWORK,
+        },
       ],
       description: "Access to protected content",
     },
@@ -69,6 +80,7 @@ const x402PaymentProxy = paymentProxyFromConfig(
   [
     { network: EVM_NETWORK, server: new ExactEvmScheme() },
     { network: SVM_NETWORK, server: new ExactSvmScheme() },
+    { network: STELLAR_NETWORK, server: new ExactStellarScheme() },
   ],
   undefined, // paywallConfig
   paywall, // paywall provider

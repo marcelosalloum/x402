@@ -11,6 +11,8 @@ import { ExactEvmSchemeV1 } from "@x402/evm/exact/v1/facilitator";
 import { toFacilitatorSvmSigner } from "@x402/svm";
 import { ExactSvmScheme } from "@x402/svm/exact/facilitator";
 import { ExactSvmSchemeV1 } from "@x402/svm/exact/v1/facilitator";
+import { createEd25519Signer } from "@x402/stellar";
+import { ExactStellarScheme } from "@x402/stellar/exact/facilitator";
 import { createWalletClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
@@ -29,6 +31,10 @@ async function createFacilitator(): Promise<x402Facilitator> {
 
   if (!process.env.FACILITATOR_SVM_PRIVATE_KEY) {
     throw new Error("❌ FACILITATOR_SVM_PRIVATE_KEY environment variable is required");
+  }
+
+  if (!process.env.FACILITATOR_STELLAR_PRIVATE_KEY) {
+    throw new Error("❌ FACILITATOR_STELLAR_PRIVATE_KEY environment variable is required");
   }
 
   // Initialize the EVM account from private key
@@ -91,12 +97,16 @@ async function createFacilitator(): Promise<x402Facilitator> {
   // Initialize SVM signer - handles all Solana networks with automatic RPC creation
   const svmSigner = toFacilitatorSvmSigner(svmAccount);
 
-  // Create and configure the facilitator with EVM and SVM
+  // Initialize the Stellar signer from private key
+  const stellarSigner = createEd25519Signer(process.env.FACILITATOR_STELLAR_PRIVATE_KEY as string);
+
+  // Create and configure the facilitator
   const facilitator = new x402Facilitator()
     .register("eip155:84532", new ExactEvmScheme(evmSigner))
     .registerV1("base-sepolia" as Network, new ExactEvmSchemeV1(evmSigner))
     .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme(svmSigner))
-    .registerV1("solana-devnet" as Network, new ExactSvmSchemeV1(svmSigner));
+    .registerV1("solana-devnet" as Network, new ExactSvmSchemeV1(svmSigner))
+    .register("stellar:testnet", new ExactStellarScheme([stellarSigner]));
 
   // Optionally register Aptos if configured
   if (process.env.FACILITATOR_APTOS_PRIVATE_KEY) {
