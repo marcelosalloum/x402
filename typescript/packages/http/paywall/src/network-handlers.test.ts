@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evmPaywall } from "./evm";
 import { svmPaywall } from "./svm";
+import { stellarPaywall } from "./stellar";
 import type { PaymentRequired, PaymentRequirements } from "./types";
 
 const evmRequirement: PaymentRequirements = {
@@ -18,6 +19,15 @@ const svmRequirement: PaymentRequirements = {
   asset: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   amount: "100000",
   payTo: "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHEBg4",
+  maxTimeoutSeconds: 60,
+};
+
+const stellarRequirement: PaymentRequirements = {
+  scheme: "exact",
+  network: "stellar:testnet",
+  asset: "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+  amount: "10000000",
+  payTo: "GCHEI4PQEFJOA27MNZRPQNLGURS6KASW76X5UZCUZIXCOJLKXYCXOR2W",
   maxTimeoutSeconds: 60,
 };
 
@@ -87,6 +97,43 @@ describe("Network Handlers", () => {
 
       expect(html).toContain("<!DOCTYPE html>");
       expect(html).toMatch(/Solana Test|SVM Paywall/);
+    });
+  });
+
+  describe("stellarPaywall", () => {
+    it("supports CAIP-2 Stellar networks", () => {
+      expect(
+        stellarPaywall.supports({
+          ...stellarRequirement,
+          network: "stellar:testnet",
+        }),
+      ).toBe(true);
+      expect(
+        stellarPaywall.supports({
+          ...stellarRequirement,
+          network: "stellar:pubnet",
+        }),
+      ).toBe(true);
+    });
+
+    it("rejects non-Stellar networks", () => {
+      expect(stellarPaywall.supports({ ...stellarRequirement, network: "eip155:8453" })).toBe(
+        false,
+      );
+      expect(stellarPaywall.supports({ ...stellarRequirement, network: "solana:5eykt" })).toBe(
+        false,
+      );
+      expect(stellarPaywall.supports({ ...stellarRequirement, network: "unknown" })).toBe(false);
+    });
+
+    it("generates HTML for Stellar networks", () => {
+      const html = stellarPaywall.generateHtml(stellarRequirement, mockPaymentRequired, {
+        appName: "Stellar Test",
+        testnet: true,
+      });
+
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toMatch(/Stellar Test|Stellar Paywall/);
     });
   });
 });
