@@ -16,6 +16,12 @@ export const SOLANA_NETWORK_REFS = {
   DEVNET: "EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
 } as const;
 
+// Stellar Network References (CAIP-2 format: stellar:network)
+export const STELLAR_NETWORK_REFS = {
+  PUBNET: "pubnet",
+  TESTNET: "testnet",
+} as const;
+
 /**
  * Normalizes the payment requirements into an array.
  *
@@ -39,9 +45,17 @@ export function normalizePaymentRequirements(
  */
 export function getPreferredNetworks(testnet: boolean): string[] {
   if (testnet) {
-    return [`eip155:${EVM_CHAIN_IDS.BASE_SEPOLIA}`, `solana:${SOLANA_NETWORK_REFS.DEVNET}`];
+    return [
+      `eip155:${EVM_CHAIN_IDS.BASE_SEPOLIA}`,
+      `solana:${SOLANA_NETWORK_REFS.DEVNET}`,
+      `stellar:${STELLAR_NETWORK_REFS.TESTNET}`,
+    ];
   }
-  return [`eip155:${EVM_CHAIN_IDS.BASE_MAINNET}`, `solana:${SOLANA_NETWORK_REFS.MAINNET}`];
+  return [
+    `eip155:${EVM_CHAIN_IDS.BASE_MAINNET}`,
+    `solana:${SOLANA_NETWORK_REFS.MAINNET}`,
+    `stellar:${STELLAR_NETWORK_REFS.PUBNET}`,
+  ];
 }
 
 /**
@@ -91,6 +105,16 @@ export function isSvmNetwork(network: string): boolean {
 }
 
 /**
+ * Determines if the provided network is a Stellar network.
+ *
+ * @param network - The network to check (CAIP-2 format: stellar:reference).
+ * @returns True if the network is Stellar based.
+ */
+export function isStellarNetwork(network: string): boolean {
+  return network.startsWith("stellar:");
+}
+
+/**
  * Provides a human-readable display name for a network.
  * Uses viem/chains for EVM chain metadata (based on ethereum-lists/chains).
  * See: https://github.com/ethereum-lists/chains
@@ -117,6 +141,11 @@ export function getNetworkDisplayName(network: string): string {
     return ref === SOLANA_NETWORK_REFS.DEVNET ? "Solana Devnet" : "Solana Mainnet";
   }
 
+  if (network.startsWith("stellar:")) {
+    const ref = network.split(":")[1];
+    return ref === STELLAR_NETWORK_REFS.TESTNET ? "Stellar Testnet" : "Stellar";
+  }
+
   return network;
 }
 
@@ -137,6 +166,11 @@ export function isTestnetNetwork(network: string): boolean {
   if (network.startsWith("solana:")) {
     const ref = network.split(":")[1];
     return ref === SOLANA_NETWORK_REFS.DEVNET;
+  }
+
+  if (network.startsWith("stellar:")) {
+    const ref = network.split(":")[1];
+    return ref === STELLAR_NETWORK_REFS.TESTNET;
   }
 
   return false;
