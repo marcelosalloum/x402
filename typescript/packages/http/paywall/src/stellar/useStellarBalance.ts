@@ -4,7 +4,7 @@ import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 import { formatUnits } from "viem";
 import type { Network } from "@x402/core/types";
 import { getNetworkPassphrase, getRpcUrl } from "@x402/stellar";
-import { statusError, type Status } from "../status";
+import { statusError, type Status } from "./status";
 
 export type UseBalanceParams = {
   address: string | null;

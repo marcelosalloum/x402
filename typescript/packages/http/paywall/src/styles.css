@@ -206,22 +206,6 @@ body {
   font-size: 0.875rem;
 }
 
-.status-info {
-  color: var(--button-primary-color);
-}
-
-.status-success {
-  color: var(--button-positive-color);
-}
-
-.status-error {
-  color: var(--button-error-color);
-}
-
-.status-warning {
-  color: #d97706;
-}
-
 .cta-container {
   display: flex;
   flex-basis: 50%;

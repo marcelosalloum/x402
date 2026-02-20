@@ -1,0 +1,21 @@
+@import "../styles.css";
+
+.payment-row {
+  gap: 0.5rem;
+}
+
+.status-info {
+  color: var(--button-primary-color);
+}
+
+.status-success {
+  color: var(--button-positive-color);
+}
+
+.status-error {
+  color: var(--button-error-color);
+}
+
+.status-warning {
+  color: #d97706;
+}

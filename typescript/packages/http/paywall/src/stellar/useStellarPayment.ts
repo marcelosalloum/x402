@@ -3,7 +3,7 @@ import { ExactStellarScheme } from "@x402/stellar/exact/client";
 import { x402Client } from "@x402/core/client";
 import type { ClientStellarSigner } from "@x402/stellar";
 import type { PaymentRequired } from "@x402/core/types";
-import { statusError, statusInfo, statusSuccess, type Status } from "../status";
+import { statusError, statusInfo, statusSuccess, type Status } from "./status";
 
 export type UseStellarPaymentParams = {
   paymentRequired: PaymentRequired;

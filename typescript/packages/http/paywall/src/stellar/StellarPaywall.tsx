@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import type { PaymentRequired, PaymentRequirements } from "@x402/core/types";
 import { getNetworkDisplayName } from "../paywallUtils";
-import { statusError, statusInfo, type Status } from "../status";
 import { Spinner } from "./Spinner";
+import { statusError, statusInfo, type Status } from "./status";
 import { useStellarBalance } from "./useStellarBalance";
 import { useStellarPayment } from "./useStellarPayment";
 import { useSWKConnection } from "./useSWKConnection";

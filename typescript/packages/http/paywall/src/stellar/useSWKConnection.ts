@@ -11,7 +11,7 @@ import type { ISupportedWallet } from "@creit.tech/stellar-wallets-kit";
 
 import type { Network } from "@x402/core/types";
 import { getNetworkPassphrase } from "@x402/stellar";
-import { statusClear, statusError, statusInfo, type Status } from "../status";
+import { statusClear, statusError, statusInfo, type Status } from "./status";
 
 export type UseSWKConnectionParams = {
   network: Network;

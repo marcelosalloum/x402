@@ -16,7 +16,7 @@ const OUTPUT_PY = path.join(PYTHON_DIR, "stellar_paywall_template.py");
 const OUTPUT_GO = path.join(GO_DIR, "stellar_paywall_template.go");
 
 const options: esbuild.BuildOptions = {
-  entryPoints: ["src/stellar/entry.tsx", "src/styles.css"],
+  entryPoints: ["src/stellar/entry.tsx", "src/stellar/styles.css"],
   bundle: true,
   metafile: true,
   outdir: DIST_DIR,
@@ -38,7 +38,7 @@ const options: esbuild.BuildOptions = {
     htmlPlugin({
       files: [
         {
-          entryPoints: ["src/stellar/entry.tsx", "src/styles.css"],
+          entryPoints: ["src/stellar/entry.tsx", "src/stellar/styles.css"],
           filename: "stellar-paywall.html",
           title: "Payment Required",
           scriptLoading: "module",
