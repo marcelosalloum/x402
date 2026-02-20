@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ISupportedWallet, StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import type { SignAuthEntry, SignTransaction } from "@stellar/stellar-sdk/contract";
 import type { Network } from "@x402/core/types";
 import { getNetworkPassphrase, type ClientStellarSigner } from "@x402/stellar";
@@ -7,8 +7,7 @@ import { getNetworkPassphrase, type ClientStellarSigner } from "@x402/stellar";
 export type UseSWKSignerParams = {
   address: string | null;
   network: Network;
-  kit: StellarWalletsKit | null;
-  swkWallet: ISupportedWallet | null;
+  kitReady: boolean;
 };
 
 /**
@@ -17,18 +16,16 @@ export type UseSWKSignerParams = {
  * @param params - Hook parameters.
  * @param params.address - Wallet address to sign with.
  * @param params.network - Network to sign with (CAIP-2 format).
- * @param params.kit - Stellar Wallet Kit instance.
- * @param params.swkWallet - Stellar Wallet Kit wallet instance.
+ * @param params.kitReady - Whether Stellar Wallet Kit has been initialized.
  * @returns A Stellar client signer or null if not available.
  */
 export function useSWKSigner({
   address,
   network,
-  kit,
-  swkWallet,
+  kitReady,
 }: UseSWKSignerParams): ClientStellarSigner | null {
   return useMemo(() => {
-    if (!address || !kit || !swkWallet) {
+    if (!address || !kitReady) {
       return null;
     }
 
@@ -40,22 +37,22 @@ export function useSWKSigner({
       },
     ) => {
       try {
-        const signingResult = await kit.signAuthEntry(authEntry, {
+        const signingResult = await StellarWalletsKit.signAuthEntry(authEntry, {
           address,
           networkPassphrase: opts?.networkPassphrase || getNetworkPassphrase(network),
         });
 
         let { signedAuthEntry } = signingResult;
         if (!signedAuthEntry) {
+          const selectedModule = StellarWalletsKit.selectedModule;
           return {
             signedAuthEntry: "",
             error: {
-              message: `Wallet ${swkWallet.name} did not return a signed auth entry.`,
+              message: `Wallet ${selectedModule?.productName ?? "unknown"} did not return a signed auth entry.`,
               code: 0,
             },
           };
         }
-        signedAuthEntry = fixSWKSignedAuthEntryIfNeeded(swkWallet, signedAuthEntry);
 
         return {
           signedAuthEntry,
@@ -81,24 +78,5 @@ export function useSWKSigner({
       signAuthEntry: signAuthEntryFunc,
       signTransaction: signTransactionFunc as SignTransaction,
     };
-  }, [address, network, kit, swkWallet]);
+  }, [address, network, kitReady]);
 }
-
-/**
- * Fixes the signed auth entry if needed for the Stellar Wallet Kit.
- * SWK is re-encoding the already encoded signature, so we have to revert that mistake here while their fix is still not published.
- *
- * @param wallet - The wallet provided through the SWK API.
- * @param signedAuthEntry - The signed auth entry returned by the SWK API.
- * @returns The fixed signed auth entry, in case of Freighter wallet, or the original signed auth entry otherwise.
- */
-export const fixSWKSignedAuthEntryIfNeeded = (
-  wallet: ISupportedWallet,
-  signedAuthEntry: string,
-): string => {
-  if (wallet.id === "freighter") {
-    return Buffer.from(signedAuthEntry, "base64").toString("utf-8");
-  }
-
-  return signedAuthEntry;
-};

@@ -79,7 +79,7 @@ function StellarPaywallMain({
   const x402 = window.x402;
   const { network, asset } = stellarRequirement;
 
-  const { kit, swkWallet, address, connect, disconnect } = useSWKConnection({
+  const { kitReady, address, connect, disconnect } = useSWKConnection({
     network,
     onStatus: setStatus,
   });
@@ -93,8 +93,7 @@ function StellarPaywallMain({
     });
 
   const walletSigner = useSWKSigner({
-    kit,
-    swkWallet,
+    kitReady,
     network,
     address,
   });
@@ -218,12 +217,12 @@ function StellarPaywallMain({
         <div className="cta-container">
           {!address ? (
             <>
-              {kit && (
+              {kitReady && (
                 <button className="button button-primary" onClick={handleConnect}>
                   Connect Wallet
                 </button>
               )}
-              {!kit && <div className="status status-info">Loading wallet options...</div>}
+              {!kitReady && <div className="status status-info">Loading wallet options...</div>}
             </>
           ) : (
             <>

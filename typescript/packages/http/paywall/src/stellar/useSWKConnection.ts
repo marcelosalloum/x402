@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  StellarWalletsKit,
-  WalletNetwork,
-  FreighterModule,
-  HotWalletModule,
-  HanaModule,
-  KleverModule,
-} from "@creit.tech/stellar-wallets-kit";
-import type { ISupportedWallet } from "@creit.tech/stellar-wallets-kit";
-
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
+import { defaultModules } from "@creit.tech/stellar-wallets-kit/modules/utils";
+import { Networks } from "@creit.tech/stellar-wallets-kit/types";
 import type { Network } from "@x402/core/types";
 import { getNetworkPassphrase } from "@x402/stellar";
 import { statusClear, statusError, statusInfo, type Status } from "./status";
+
+const SIGN_AUTH_ENTRY_MODULE_IDS: string[] = ["freighter", "hana", "klever", "onekey"];
 
 export type UseSWKConnectionParams = {
   network: Network;
@@ -19,8 +14,7 @@ export type UseSWKConnectionParams = {
 };
 
 export type UseSWKConnectionReturn = {
-  kit: StellarWalletsKit | null;
-  swkWallet: ISupportedWallet | null;
+  kitReady: boolean;
   address: string | null;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
@@ -38,9 +32,8 @@ export function useSWKConnection({
   network,
   onStatus,
 }: UseSWKConnectionParams): UseSWKConnectionReturn {
-  const [kit, setKit] = useState<StellarWalletsKit | null>(null);
+  const [kitReady, setKitReady] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
-  const [swkWallet, setSwkWallet] = useState<ISupportedWallet | null>(null);
   const onStatusRef = useRef(onStatus);
 
   useEffect(() => {
@@ -48,96 +41,74 @@ export function useSWKConnection({
   });
 
   useEffect(() => {
-    const initKit = async () => {
-      try {
-        const networkPassphrase = getNetworkPassphrase(network);
-        const newKit = new StellarWalletsKit({
-          network: networkPassphrase as WalletNetwork,
-          // These are the only modules that implement signAuthEntries on SWK 2 (beta)
-          modules: [
-            new FreighterModule(),
-            new HotWalletModule(),
-            new HanaModule(),
-            new KleverModule(),
-          ],
-        });
+    try {
+      const networkPassphrase = getNetworkPassphrase(network);
+      StellarWalletsKit.init({
+        network: networkPassphrase as Networks,
+        modules: defaultModules({
+          filterBy: m => SIGN_AUTH_ENTRY_MODULE_IDS.includes(m.productId),
+        }),
+      });
 
-        setKit(newKit);
-      } catch (error) {
-        console.error("Failed to initialize Stellar Wallet Kit", error);
-        onStatusRef.current(
-          statusError(
-            error instanceof Error ? error.message : "Failed to initialize Stellar Wallet Kit.",
-          ),
-        );
-      }
-    };
-
-    void initKit();
+      setKitReady(true);
+    } catch (error) {
+      console.error("Failed to initialize Stellar Wallet Kit", error);
+      onStatusRef.current(
+        statusError(
+          error instanceof Error ? error.message : "Failed to initialize Stellar Wallet Kit.",
+        ),
+      );
+    }
   }, [network]);
 
   const connect = useCallback(async () => {
-    if (!kit) {
+    if (!kitReady) {
       onStatusRef.current(statusError("Wallet kit is not ready."));
       return;
     }
 
     try {
-      await kit.openModal({
-        onWalletSelected: async (wallet: ISupportedWallet) => {
-          onStatusRef.current(statusInfo("Connecting to wallet..."));
+      onStatusRef.current(statusInfo("Connecting to wallet..."));
 
-          kit.setWallet(wallet.id);
+      const { address: walletAddress } = await StellarWalletsKit.authModal();
 
-          const addressResult = await kit.getAddress();
-          if (!addressResult.address) {
-            throw new Error("Failed to get wallet address.");
-          }
+      if (!walletAddress) {
+        throw new Error("Failed to get wallet address.");
+      }
 
-          const { networkPassphrase: swkNetworkPassphrase } = await kit.getNetwork();
-          if (!swkNetworkPassphrase) {
-            throw new Error("Failed to get SWK's wallet network passphrase.");
-          }
+      const { networkPassphrase: swkNetworkPassphrase } = await StellarWalletsKit.getNetwork();
+      if (!swkNetworkPassphrase) {
+        throw new Error("Failed to get SWK's wallet network passphrase.");
+      }
 
-          const desiredNetworkPassphrase = getNetworkPassphrase(network);
-          if (swkNetworkPassphrase !== desiredNetworkPassphrase) {
-            const networkName = network === "stellar:pubnet" ? "Mainnet" : "Testnet";
-            throw new Error(`Please switch your wallet to ${networkName} network, then try again.`);
-          }
+      const desiredNetworkPassphrase = getNetworkPassphrase(network);
+      if (swkNetworkPassphrase !== desiredNetworkPassphrase) {
+        const networkName = network === "stellar:pubnet" ? "Mainnet" : "Testnet";
+        throw new Error(`Please switch your wallet to ${networkName} network, then try again.`);
+      }
 
-          setSwkWallet(wallet);
-          setAddress(addressResult.address);
-          onStatusRef.current(statusClear());
-        },
-        onClosed: () => {
-          console.log("===> SWK wallet closed");
-        },
-      });
+      setAddress(walletAddress);
+      onStatusRef.current(statusClear());
     } catch (error) {
       console.error("Failed to connect wallet", error);
       onStatusRef.current(
         statusError(error instanceof Error ? error.message : "Failed to connect to wallet."),
       );
       setAddress(null);
-      setSwkWallet(null);
     }
-  }, [kit, network]);
+  }, [kitReady, network]);
 
   const disconnect = useCallback(async () => {
-    if (kit) {
-      try {
-        await kit.disconnect();
-      } catch (error) {
-        console.error("Failed to disconnect wallet", error);
-      }
+    try {
+      await StellarWalletsKit.disconnect();
+    } catch (error) {
+      console.error("Failed to disconnect wallet", error);
     }
     setAddress(null);
-    setSwkWallet(null);
-  }, [kit]);
+  }, []);
 
   return {
-    kit,
-    swkWallet,
+    kitReady,
     address,
     connect,
     disconnect,
