@@ -1,21 +1,6 @@
+import { USDC_PUBNET_ADDRESS, USDC_TESTNET_ADDRESS } from "@x402/stellar";
 import type { PaymentRequired } from "../types";
 import { getStellarTemplate } from "./template-loader";
-
-/**
- * Escapes a string for safe injection into JavaScript string literals
- *
- * @param str - The string to escape
- * @returns The escaped string
- */
-function escapeString(str: string): string {
-  return str
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/'/g, "\\'")
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/\t/g, "\\t");
-}
 
 /**
  * Gets the Stellar chain config with USDC contract addresses
@@ -25,11 +10,11 @@ function escapeString(str: string): string {
 function getChainConfig() {
   return {
     pubnet: {
-      usdcAddress: "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+      usdcAddress: USDC_PUBNET_ADDRESS,
       usdcName: "USDC",
     },
     testnet: {
-      usdcAddress: "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+      usdcAddress: USDC_TESTNET_ADDRESS,
       usdcName: "USDC",
     },
   };
@@ -77,12 +62,12 @@ export function getStellarPaywallHtml(options: StellarPaywallOptions): string {
       amount: ${amount},
       paymentRequired: ${JSON.stringify(paymentRequired)},
       testnet: ${testnet},
-      currentUrl: "${escapeString(currentUrl)}",
+      currentUrl: ${JSON.stringify(currentUrl)},
       config: {
         chainConfig: ${JSON.stringify(config)},
       },
-      appName: "${escapeString(appName || "")}",
-      appLogo: "${escapeString(appLogo || "")}",
+      appName: ${JSON.stringify(appName || "")},
+      appLogo: ${JSON.stringify(appLogo || "")},
     };
     ${logOnTestnet}
   </script>`;

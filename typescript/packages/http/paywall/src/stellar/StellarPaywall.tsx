@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import type { PaymentRequired } from "@x402/core/types";
-import { Spinner } from "./Spinner";
+import type { PaymentRequired, PaymentRequirements } from "@x402/core/types";
 import { getNetworkDisplayName } from "../paywallUtils";
 import { statusError, statusInfo, type Status } from "../status";
+import { Spinner } from "./Spinner";
 import { useStellarBalance } from "./useStellarBalance";
 import { useStellarPayment } from "./useStellarPayment";
 import { useSWKConnection } from "./useSWKConnection";
@@ -13,10 +13,18 @@ type StellarPaywallProps = {
   onSuccessfulResponse: (response: Response) => Promise<void>;
 };
 
+type StellarPaywallMainProps = {
+  paymentRequired: PaymentRequired;
+  stellarRequirement: PaymentRequirements;
+  onSuccessfulResponse: (response: Response) => Promise<void>;
+};
+
 const STELLAR_PAYMENT_SCALE = 10_000_000;
 
 /**
- * Paywall experience for Stellar networks.
+ * Paywall experience for Stellar networks. Validates that a Stellar payment
+ * requirement exists and either renders the error shell or delegates to the
+ * main component.
  *
  * @param props - Component props.
  * @param props.paymentRequired - Payment required response with accepts array.
@@ -24,17 +32,52 @@ const STELLAR_PAYMENT_SCALE = 10_000_000;
  * @returns JSX element.
  */
 export function StellarPaywall({ paymentRequired, onSuccessfulResponse }: StellarPaywallProps) {
+  const stellarRequirement = paymentRequired.accepts.find(r => r.network.startsWith("stellar:"));
+
+  if (!stellarRequirement) {
+    return (
+      <div className="container gap-8">
+        <div className="header">
+          <h1 className="title">Payment Required</h1>
+        </div>
+        <div className="content w-full">
+          <div className="status status-error">
+            No Stellar payment requirement found in paymentRequired.accepts
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <StellarPaywallMain
+      paymentRequired={paymentRequired}
+      stellarRequirement={stellarRequirement}
+      onSuccessfulResponse={onSuccessfulResponse}
+    />
+  );
+}
+
+/**
+ * Main paywall component. Receives a guaranteed Stellar requirement and
+ * handles wallet connection, balance fetching, and payment submission.
+ *
+ * @param props - Component props.
+ * @param props.paymentRequired - Payment required response with accepts array.
+ * @param props.stellarRequirement - Resolved Stellar payment requirement.
+ * @param props.onSuccessfulResponse - Callback invoked on successful 402 response.
+ * @returns JSX element.
+ */
+function StellarPaywallMain({
+  paymentRequired,
+  stellarRequirement,
+  onSuccessfulResponse,
+}: StellarPaywallMainProps) {
   const [status, setStatus] = useState<Status | null>(null);
   const [hideBalance, setHideBalance] = useState(true);
 
   const x402 = window.x402;
-
-  const firstRequirement = paymentRequired.accepts[0];
-  if (!firstRequirement) {
-    throw new Error("No payment requirements in paymentRequired.accepts");
-  }
-
-  const { network, asset } = firstRequirement;
+  const { network, asset } = stellarRequirement;
 
   const { kit, swkWallet, address, connect, disconnect } = useSWKConnection({
     network,
@@ -66,7 +109,7 @@ export function StellarPaywall({ paymentRequired, onSuccessfulResponse }: Stella
   const amount =
     typeof x402.amount === "number"
       ? x402.amount
-      : Number(firstRequirement.maxAmountRequired ?? 0) / STELLAR_PAYMENT_SCALE;
+      : Number(stellarRequirement.amount) / STELLAR_PAYMENT_SCALE;
 
   const chainName = getNetworkDisplayName(network);
 

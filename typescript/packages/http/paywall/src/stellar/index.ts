@@ -1,8 +1,8 @@
 import type {
-  PaywallNetworkHandler,
-  PaymentRequirements,
-  PaymentRequired,
   PaywallConfig,
+  PaywallNetworkHandler,
+  PaymentRequired,
+  PaymentRequirements,
 } from "../types";
 import { getStellarPaywallHtml } from "./paywall";
 

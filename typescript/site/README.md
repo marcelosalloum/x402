@@ -38,8 +38,10 @@ x402 is an open protocol for internet-native payments built around the HTTP 402 
   FACILITATOR_URL=your_facilitator_url
   RESOURCE_EVM_ADDRESS=your_evm_wallet_address
   RESOURCE_SVM_ADDRESS=your_solana_wallet_address
+  RESOURCE_STELLAR_ADDRESS=your_stellar_wallet_address
   FACILITATOR_EVM_PRIVATE_KEY=your_evm_private_key
   FACILITATOR_SVM_PRIVATE_KEY=your_solana_private_key
+  FACILITATOR_STELLAR_PRIVATE_KEY=your_stellar_private_key
   ```
 
 ### Running the Development Server

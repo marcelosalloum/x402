@@ -1,5 +1,5 @@
-import esbuild from "esbuild";
 import { htmlPlugin } from "@craftamap/esbuild-plugin-html";
+import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { getBaseTemplate } from "../baseTemplate";

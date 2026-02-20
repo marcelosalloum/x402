@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { formatUnits } from "viem";
 import { AssembledTransaction } from "@stellar/stellar-sdk/contract";
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
+import { formatUnits } from "viem";
+import type { Network } from "@x402/core/types";
 import { getNetworkPassphrase, getRpcUrl } from "@x402/stellar";
 import { statusError, type Status } from "../status";
 
 export type UseBalanceParams = {
   address: string | null;
-  network: string;
+  network: Network;
   asset: string;
   onStatus: (status: Status | null) => void;
 };

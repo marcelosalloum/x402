@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import type { ISupportedWallet, StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 import type { SignAuthEntry, SignTransaction } from "@stellar/stellar-sdk/contract";
+import type { Network } from "@x402/core/types";
 import { getNetworkPassphrase, type ClientStellarSigner } from "@x402/stellar";
 
 export type UseSWKSignerParams = {
   address: string | null;
-  network: string;
+  network: Network;
   kit: StellarWalletsKit | null;
   swkWallet: ISupportedWallet | null;
 };

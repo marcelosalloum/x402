@@ -1,7 +1,6 @@
-import React from "react";
 import { createRoot } from "react-dom/client";
-import { StellarPaywall } from "./StellarPaywall";
 import type {} from "../window";
+import { StellarPaywall } from "./StellarPaywall";
 
 // Stellar-specific paywall entry point
 window.addEventListener("load", () => {
