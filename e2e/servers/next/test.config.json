@@ -39,6 +39,13 @@
       "protocolFamily": "aptos"
     },
     {
+      "path": "/api/protected-stellar-proxy",
+      "method": "GET",
+      "description": "Protected endpoint using proxy middleware on Stellar",
+      "requiresPayment": true,
+      "protocolFamily": "stellar"
+    },
+    {
       "path": "/api/protected-withx402",
       "method": "GET",
       "description": "Protected endpoint using withX402 wrapper",
@@ -52,6 +59,13 @@
       "description": "Protected endpoint using withX402 wrapper on SVM",
       "requiresPayment": true,
       "protocolFamily": "svm"
+    },
+    {
+      "path": "/api/protected-stellar-withx402",
+      "method": "GET",
+      "description": "Protected endpoint using withX402 wrapper on Stellar",
+      "requiresPayment": true,
+      "protocolFamily": "stellar"
     },
     {
       "path": "/api/health",
@@ -74,7 +88,9 @@
       "FACILITATOR_URL"
     ],
     "optional": [
-      "APTOS_PAYEE_ADDRESS"
+      "APTOS_PAYEE_ADDRESS",
+      "STELLAR_PAYEE_ADDRESS",
+      "STELLAR_NETWORK"
     ]
   }
 }

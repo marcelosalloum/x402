@@ -34,6 +34,8 @@ import { toFacilitatorSvmSigner } from "@x402/svm";
 import { ExactSvmScheme } from "@x402/svm/exact/facilitator";
 import { ExactSvmSchemeV1 } from "@x402/svm/exact/v1/facilitator";
 import { NETWORKS as SVM_V1_NETWORKS } from "@x402/svm/v1";
+import { createEd25519Signer, type FacilitatorStellarSigner } from "@x402/stellar";
+import { ExactStellarScheme } from "@x402/stellar/exact/facilitator";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import express from "express";
@@ -49,9 +51,11 @@ const PORT = process.env.PORT || "4022";
 const EVM_NETWORK = process.env.EVM_NETWORK || "eip155:84532";
 const SVM_NETWORK = process.env.SVM_NETWORK || "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 const APTOS_NETWORK = process.env.APTOS_NETWORK || "aptos:2";
+const STELLAR_NETWORK = process.env.STELLAR_NETWORK || "stellar:testnet";
 const EVM_RPC_URL = process.env.EVM_RPC_URL;
 const SVM_RPC_URL = process.env.SVM_RPC_URL;
 const APTOS_RPC_URL = process.env.APTOS_RPC_URL;
+const STELLAR_RPC_URL = process.env.STELLAR_RPC_URL;
 
 // Map CAIP-2 network IDs to viem chains
 function getEvmChain(network: string): Chain {
@@ -67,9 +71,11 @@ function getEvmChain(network: string): Chain {
 console.log(`🌐 EVM Network: ${EVM_NETWORK}`);
 console.log(`🌐 SVM Network: ${SVM_NETWORK}`);
 console.log(`🌐 Aptos Network: ${APTOS_NETWORK}`);
+console.log(`🌐 Stellar Network: ${STELLAR_NETWORK}`);
 if (EVM_RPC_URL) console.log(`🌐 EVM RPC URL: ${EVM_RPC_URL}`);
 if (SVM_RPC_URL) console.log(`🌐 SVM RPC URL: ${SVM_RPC_URL}`);
 if (APTOS_RPC_URL) console.log(`🌐 Aptos RPC URL: ${APTOS_RPC_URL}`);
+if (STELLAR_RPC_URL) console.log(`🌐 Stellar RPC URL: ${STELLAR_RPC_URL}`);
 
 // Validate required environment variables
 if (!process.env.EVM_PRIVATE_KEY) {
@@ -98,6 +104,13 @@ if (process.env.APTOS_PRIVATE_KEY) {
   const aptosPrivateKey = new Ed25519PrivateKey(formattedAptosKey);
   aptosAccount = Account.fromPrivateKey({ privateKey: aptosPrivateKey });
   console.info(`Aptos Facilitator account: ${aptosAccount.accountAddress.toStringLong()}`);
+}
+
+// Initialize the Stellar signer from private key (optional)
+let stellarSigner: FacilitatorStellarSigner | undefined;
+if (process.env.STELLAR_PRIVATE_KEY) {
+  stellarSigner = createEd25519Signer(process.env.STELLAR_PRIVATE_KEY as string, STELLAR_NETWORK as Network);
+  console.info(`Stellar Facilitator account: ${stellarSigner.address}`);
 }
 
 // Create a Viem client with both wallet and public capabilities
@@ -175,6 +188,9 @@ facilitator
   .registerV1(SVM_V1_NETWORKS as Network[], new ExactSvmSchemeV1(svmSigner));
 if (aptosSigner) {
   facilitator.register(APTOS_NETWORK as Network, new ExactAptosScheme(aptosSigner));
+}
+if (stellarSigner) {
+  facilitator.register(STELLAR_NETWORK as Network, new ExactStellarScheme([stellarSigner]));
 }
 
 facilitator.registerExtension(BAZAAR)
@@ -362,6 +378,7 @@ app.get("/health", (req, res) => {
     evmNetwork: EVM_NETWORK,
     svmNetwork: SVM_NETWORK,
     aptosNetwork: aptosAccount ? APTOS_NETWORK : "(not configured)",
+    stellarNetwork: stellarSigner ? STELLAR_NETWORK : "(not configured)",
     facilitator: "typescript",
     version: "2.0.0",
     extensions: [BAZAAR.key],
@@ -395,6 +412,7 @@ app.listen(parseInt(PORT), () => {
 ║  Aptos Network: ${APTOS_NETWORK}                       ║
 ║  EVM Address:  ${evmAccount.address}                   ║
 ║  Aptos Address: ${aptosAccount ? aptosAccount.accountAddress.toStringLong().slice(0, 20) + "..." : "(not configured)"}
+║  Stellar Address: ${stellarSigner ? stellarSigner.address : "(not configured)"} ║
 ║  Extensions:   bazaar                                  ║
 ║                                                        ║
 ║  Endpoints:                                            ║
