@@ -46,8 +46,8 @@ Client                    Server                  Facilitator             Chain
   |                         |                         |                     |
   |  ... repeat pay ...     |                         |                     |
   |                         |                         |                     |
-  |                         |            (periodically)|--- settle -------->|
-  |                         |                         |    latest commit    |
+  |                         |    (optional, reduces   |---- settle -------->|
+  |                         |     facilitator risk)   |    latest commit    |
   |                         |                         |                     |
   |--- close -------------->|--- verify/settle ------>|--- close on-chain ->|
   |<-- 200 + txHash --------|<-- txHash --------------|<-- settled ---------|
@@ -58,11 +58,12 @@ Client                    Server                  Facilitator             Chain
 - Commitments are **cumulative** (not incremental): a commitment for 250 means 250 total owed, not 250 more than before
 - The client signs commitments with a `commitmentKey` — either a dedicated ed25519 keypair or the client's account key
 - The facilitator is **stateful**: it tracks channel address, balance, latest commitment per (client, server, token) tuple
-- The facilitator watches for on-chain events (e.g., `close_start`) and reacts by submitting the latest commitment to protect the server's funds
+- The facilitator watches for on-chain events in case the funder/client triggers a `close_start` directly on the contract (bypassing x402). When detected, the facilitator submits the latest commitment before the waiting period expires to protect the server's funds
+- The facilitator may optionally call `settle` on-chain periodically to claim accumulated commitments without closing the channel, reducing risk exposure
 - If a `pay` commitment exceeds the channel's available balance, the facilitator returns an error with the channel state — the client can `top_up` or `close` at their discretion
 
 > [!NOTE]
-> **Future: Facilitator/Server Split.** Currently the facilitator acts as the on-chain recipient. In a future update, the recipient role will be split: the **facilitator** retains operational control (calls `settle`, `close` on-chain) while the **server** (`payTo`) receives the actual funds. This is a trusted model — x402 servers trust their facilitators, so no challenge/dispute mechanism is needed. A semi-trusted model could be added later.
+> **Pending: Facilitator/Server Split.** Currently the facilitator acts as the on-chain recipient. In a future update, the recipient role will be split: the **facilitator** retains operational control (calls `settle`, `close` on-chain) while the **server** (`payTo`) receives the actual funds. This is a trusted model — x402 servers trust their facilitators, so no challenge/dispute mechanism is needed. A semi-trusted model could be added later.
 
 ## Appendix
 
@@ -70,7 +71,7 @@ Client                    Server                  Facilitator             Chain
 
 While implementation details vary by network, facilitators MUST enforce security constraints. See per-network documents for specifics:
 
-- `scheme_channel_stellar.md` (Stellar)
+- [`scheme_channel_stellar.md`](scheme_channel_stellar.md) (Stellar)
 
 ### General Requirements
 

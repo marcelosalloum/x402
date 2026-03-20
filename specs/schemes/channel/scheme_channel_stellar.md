@@ -16,7 +16,7 @@ This spec uses [CAIP-2](https://namespaces.chainagnostic.org/stellar/caip2) iden
 The x402 `channel` scheme on Stellar uses the [one-way-channel](https://github.com/stellar-experimental/one-way-channel) Soroban smart contract. The client deposits tokens into a channel via a factory contract, then pays per-request with off-chain ed25519-signed commitments. The facilitator sponsors on-chain transactions and manages settlement.
 
 > [!NOTE]
-> **Scope:** This spec covers [SEP-41]-compliant Soroban tokens **only**. Classic Stellar assets are not supported.
+> **Scope:** This spec covers [SEP-41]-compliant Soroban tokens **only**. Classic Stellar assets are only supported through [SEP-41] compliant [SAC](https://developers.stellar.org/docs/tokens/stellar-asset-contract) contracts.
 
 ## Protocol Flow
 
@@ -29,13 +29,13 @@ The protocol has four phases: **open**, **pay**, **top_up**, and **close**.
 3. **Client** builds a `invokeHostFunction` transaction calling the factory contract's `open(funder, recipient, token, deposit, commitmentKey, ...)` function.
 4. **Client** signs the authorization entries with their wallet.
 5. **Client** sends the `PaymentPayload` with `action: "open"` to the resource server.
-6. **Resource Server** forwards to the **Facilitator's** `/verify` endpoint.
+6. **Resource Server** forwards to the **Facilitator's** `/verify` endpoint and upon success to `/settle`.
 7. **Facilitator** validates the transaction, sponsors fees, and submits on-chain.
 8. **Facilitator** returns `SettleResponse` with the `channelId` (deployed channel contract address) and balance.
 9. **Resource Server** grants access and returns the `channelId` to the **Client**.
 
 > [!NOTE]
-> **Future: Facilitator/Server Split.** The `open` call will need to accept two recipient addresses: the facilitator (operational control) and the server (fund destination). Until the contract supports this, the facilitator address is the recipient.
+> **Pending: Facilitator/Server Split.** The `open` call will need to accept two recipient addresses: the facilitator (operational control) and the server (fund destination). Until the contract supports this, the facilitator address is treated as the recipient in this document.
 
 ### 2. Pay — Off-Chain Commitment
 
@@ -66,8 +66,6 @@ The protocol has four phases: **open**, **pay**, **top_up**, and **close**.
 
 In addition to the standard x402 `PaymentRequirements` fields, the `channel` scheme on Stellar requires the following inside the `extra` field.
 
-**When no channel exists for this client:**
-
 ```json
 {
   "scheme": "channel",
@@ -84,24 +82,6 @@ In addition to the standard x402 `PaymentRequirements` fields, the `channel` sch
 }
 ```
 
-**When a channel already exists:**
-
-```json
-{
-  "scheme": "channel",
-  "network": "stellar:testnet",
-  "amount": "1000000",
-  "asset": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
-  "payTo": "GBHEGW3KWOY2OFH767EDALFGCUTBOEVBDQMCKU4APMDLQNBW5QV3W3KO",
-  "maxTimeoutSeconds": 60,
-  "extra": {
-    "factoryContract": "CDXYZ...",
-    "areFeesSponsored": true,
-    "channelId": "CABC123..."
-  }
-}
-```
-
 **Field Definitions:**
 
 | Field | Required | Description |
@@ -112,15 +92,14 @@ In addition to the standard x402 `PaymentRequirements` fields, the `channel` sch
 | `maxTimeoutSeconds` | Yes | Max time for auth entry expiration |
 | `extra.factoryContract` | Yes | Address of the channel factory contract |
 | `extra.areFeesSponsored` | Yes | Whether the facilitator sponsors on-chain fees |
-| `extra.suggestedDeposit` | No | Suggested initial deposit (advisory, only when no channel exists) |
-| `extra.channelId` | No | Existing channel address (only when a channel exists for this client) |
+| `extra.suggestedDeposit` | No | Suggested initial deposit (advisory) |
 
 > [!NOTE]
-> **Future: Facilitator/Server Split.** Currently `payTo` and the on-chain recipient are the same (the facilitator address). Once the contract supports the split, `payTo` will be the server's fund-receiving address, and the facilitator address will be separate. The `open` factory call will pass both addresses.
+> **Pending: Facilitator/Server Split.** Currently `payTo` and the on-chain recipient are the same (the facilitator address). Once the contract supports the split, `payTo` will be the server's fund-receiving address, and the facilitator address will be separate. The `open` factory call will pass both addresses.
 
 ## `PaymentPayload` `payload` Field
 
-### `open`
+The `payload` field of the `PaymentPayload` varies by action. The full `PaymentPayload` object:
 
 ```json
 {
@@ -143,27 +122,31 @@ In addition to the standard x402 `PaymentRequirements` fields, the `channel` sch
       "suggestedDeposit": "100000000"
     }
   },
-  "payload": {
-    "action": "open",
-    "transaction": "AAAAAgAAAA...",
-    "commitmentKey": "GDXYZ..."
-  }
+  "payload": { "...different per action, see below..." }
+}
+```
+
+### action: `open`
+
+```json
+{
+  "action": "open",
+  "transaction": "AAAAAgAAAA...",
+  "commitmentKey": "GDXYZ..."
 }
 ```
 
 - `transaction`: Base64-encoded XDR of the Stellar transaction calling the factory's `open` function with signed authorization entries.
-- `commitmentKey`: The ed25519 public key used for signing commitments. Can be a dedicated keypair or the client's Stellar account key.
+- `commitmentKey`: The ed25519 **public key** used for signing commitments. Can be a dedicated keypair or the client's Stellar account key.
 
-### `pay`
+### action: `pay`
 
 ```json
 {
-  "payload": {
-    "action": "pay",
-    "channelId": "CABC123...",
-    "cumulativeAmount": "2000000",
-    "signature": "base64-encoded-ed25519-sig"
-  }
+  "action": "pay",
+  "channelId": "CABC123...",
+  "cumulativeAmount": "2000000",
+  "signature": "base64-encoded-ed25519-sig"
 }
 ```
 
@@ -175,11 +158,9 @@ In addition to the standard x402 `PaymentRequirements` fields, the `channel` sch
 
 ```json
 {
-  "payload": {
-    "action": "top_up",
-    "channelId": "CABC123...",
-    "transaction": "AAAAAgAAAA..."
-  }
+  "action": "top_up",
+  "channelId": "CABC123...",
+  "transaction": "AAAAAgAAAA..."
 }
 ```
 
@@ -189,11 +170,9 @@ In addition to the standard x402 `PaymentRequirements` fields, the `channel` sch
 
 ```json
 {
-  "payload": {
-    "action": "close",
-    "channelId": "CABC123...",
-    "signature": "base64-encoded-sig-over-close-intent"
-  }
+  "action": "close",
+  "channelId": "CABC123...",
+  "signature": "base64-encoded-sig-over-close-intent"
 }
 ```
 
@@ -279,7 +258,7 @@ A facilitator verifying a `channel` scheme on Stellar MUST enforce the following
 - The `token` argument MUST match `requirements.asset`.
 
 > [!NOTE]
-> **Future: Facilitator/Server Split.** The `open` transaction arguments validation will need to verify both the facilitator address and the server (`payTo`) address match expected values.
+> **Pending: Facilitator/Server Split.** The `open` transaction arguments validation will need to verify both the facilitator address and the server (`payTo`) address match expected values.
 
 #### 3. Authorization Entries
 
@@ -373,7 +352,7 @@ A facilitator verifying a `channel` scheme on Stellar MUST enforce the following
 | `status` | `open`, `closing`, `closed` |
 
 > [!NOTE]
-> **Future: Facilitator/Server Split.** The `recipient` field will be split into `facilitator` (operational control) and `server` (fund destination).
+> **Pending: Facilitator/Server Split.** The `recipient` field will be split into `facilitator` (operational control) and `server` (fund destination).
 
 ### State Transitions
 
@@ -388,8 +367,8 @@ A facilitator verifying a `channel` scheme on Stellar MUST enforce the following
               |       |     |
               +-------+-----+
                       |
-       close_start       OR      client sends close
-       detected on-chain          action
+       close_start       OR      client sends close action
+       detected on-chain         directly to the contract
               |                        |
               v                        v
           CLOSING                   CLOSED
@@ -402,13 +381,27 @@ A facilitator verifying a `channel` scheme on Stellar MUST enforce the following
 
 ### On-Chain Event Monitoring
 
+The one-way-channel contract emits the following events:
+
+| Contract Event | Emitted By | Parameters |
+|----------------|------------|------------|
+| `Open` | Factory (constructor) | `from`, `commitment_key`, `to`, `token`, `amount`, `refund_waiting_period` |
+| `Close` | `close` and `close_start` | `effective_at_ledger` |
+| `Withdraw` | `settle` and `close` | `to`, `amount` |
+| `Refund` | `refund` | `from`, `amount` |
+
+> [!NOTE]
+> `top_up` does not emit an event. The facilitator tracks top-ups by submitting them on behalf of the client, so it already knows the new balance.
+
+**Facilitator responses to events:**
+
 | Event | Facilitator Action |
 |-------|-------------------|
-| Channel opened (factory) | Initialize channel state |
-| `top_up` | Update `deposit` |
-| `close_start` | Set status to `closing`, submit `close` with latest commitment before waiting period expires |
-| `close` | Set status to `closed` |
-| `refund` | Set status to `closed` |
+| `Open` | Initialize channel state, store `channelId` |
+| `Close` with future `effective_at_ledger` | `close_start` detected — set status to `closing`, submit `close` with latest commitment before the waiting period expires |
+| `Close` with immediate `effective_at_ledger` | Channel closed — set status to `closed` |
+| `Withdraw` | Update settled amount (relevant when facilitator itself calls `settle`) |
+| `Refund` | Set status to `closed` |
 
 ### Proactive Settlement
 
@@ -467,7 +460,7 @@ The `channel` scheme on Stellar depends on the [one-way-channel](https://github.
 | `top_up` | Funder (client) | Facilitator sponsors and submits; updates channel balance |
 
 > [!NOTE]
-> **Future: Facilitator/Server Split.** Currently the facilitator is the on-chain recipient. In a future contract update, the recipient role will be split into two addresses: the **facilitator** (operational control — calls `settle`, `close`) and the **server** (receives funds). The contract will need to accept a trusted second auth party who can call `close`/`settle` on behalf of the actual recipient. This is a relatively straightforward change since x402 servers trust their facilitators — no challenge/dispute mechanism is needed. A semi-trusted model (where the recipient can challenge a facilitator's close) could be added later but is out of scope.
+> **Pending: Facilitator/Server Split.** Currently the facilitator is the on-chain recipient. In a future contract update, the recipient role will be split into two addresses: the **facilitator** (operational control — calls `settle`, `close`) and the **server** (receives funds). The contract will need to accept a trusted second auth party who can call `close`/`settle` on behalf of the actual recipient. This is a relatively straightforward change since x402 servers trust their facilitators — no challenge/dispute mechanism is needed. A semi-trusted model (where the recipient can challenge a facilitator's close) could be added later but is out of scope.
 >
 > Functions affected: `open` (accept both addresses), `settle` (transfer funds to server, not caller), `close` (same), and authorization checks (allow facilitator as trusted closer).
 
@@ -475,7 +468,7 @@ The `channel` scheme on Stellar depends on the [one-way-channel](https://github.
 
 ### Commitment Format
 
-Commitments follow the one-way-channel contract's format. The signed message is `(cumulativeAmount, channelContractAddress)` — the cumulative total owed, bound to a specific channel. Cumulative semantics prevent replay: each commitment supersedes all previous ones.
+Commitments follow the one-way-channel contract's format. The signed message is `(cumulativeAmount, channelContractAddress)` – the cumulative total owed, bound to a specific channel. Cumulative semantics prevent replay: each commitment supersedes all previous ones.
 
 ### Close Intent Format
 
