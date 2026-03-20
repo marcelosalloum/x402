@@ -197,7 +197,7 @@ In addition to the standard x402 `PaymentRequirements` fields, the `channel` sch
 }
 ```
 
-- `signature`: Ed25519 signature over `(channelId, "close")` signed with the `commitmentKey`, proving the funder intends to close. Distinct from a payment commitment signature.
+- `signature`: Ed25519 signature over `(channelId, "close")` signed with the `commitmentKey`, proving the funder intends to close. This is purely facilitator-side verification — the on-chain `close` call uses the recipient's `require_auth()`. The format is intentionally distinct from payment commitment signatures to prevent ambiguity.
 
 ## `SettleResponse`
 
@@ -413,6 +413,8 @@ A facilitator verifying a `channel` scheme on Stellar MUST enforce the following
 ### Proactive Settlement
 
 The facilitator can periodically call `settle` on the channel contract with the latest commitment to claim accumulated funds without closing the channel. This reduces the server's risk exposure. The timing is an internal facilitator decision — the client and server do not need to be aware of it.
+
+The `settle` call is not triggered by any client action — it is a facilitator-internal operation. The facilitator builds a transaction calling `settle(currentCumulative, latestSignature)` on the channel contract, signs it as the recipient, and submits on-chain. The contract transfers only the delta (`currentCumulative - previouslyWithdrawn`) to the recipient.
 
 ## Error Handling
 
